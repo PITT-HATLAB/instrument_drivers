@@ -143,7 +143,7 @@ class mode(Instrument):
             CS.change_current(self.bias_current())
         if self.gen_att() != None:
             print(f"SET GENERATOR ATTENUATION TO {self.gen_att()}")
-        if self.vna_att() != None:
+        if self.vna_att != None:
             print(f"SET VNA ATTENUATION TO {self.vna_att()}")
             
     def print(self):

@@ -13,7 +13,7 @@ from typing import Any, Dict, Optional
 
 from qcodes import Instrument
 from qcodes.utils.validators import Numbers
-from hatdrivers import DLL
+from instrument_drivers import DLL
 
 class Device_rf_params_t(ctypes.Structure):
     _fields_ = [("rf1_freq", ctypes.c_ulonglong),

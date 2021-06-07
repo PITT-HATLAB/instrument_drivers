@@ -93,7 +93,7 @@ class Keysight_P9374A(VisaInstrument):
                            set_cmd = ":SOUR1:POW {}", 
                            unit = 'dBm', 
                            get_parser = float,
-                           vals = vals.Numbers(-85, 10)
+                           vals = vals.Numbers(-83, 20)
                            )
         self.add_parameter('power_start',
                            get_cmd = ':SOUR1:POW:STAR?',

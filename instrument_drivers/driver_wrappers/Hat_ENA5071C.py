@@ -5,7 +5,7 @@ Created on Tue Dec  8 16:49:14 2020
 @author: Ryan Kaufman
 """
 
-from hatdrivers.Agilent_ENA_5071C import Agilent_ENA_5071C
+from instrument_drivers.base_drivers.Agilent_ENA_5071C import Agilent_ENA_5071C
 import numpy as np
 import logging
 import time

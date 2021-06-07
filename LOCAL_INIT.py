@@ -16,21 +16,21 @@ import ctypes
 #base drivers
 # from hatdrivers.Agilent_ENA_5071C import Agilent_ENA_5071C
 # from hatdrivers.Keysight_P9374A import Keysight_P9374A
-from hatdrivers.Keysight_N5183B import Keysight_N5183B
-from hatdrivers.Yokogawa_GS200 import YOKO
-from hatdrivers.SignalCore_sc5511a import SignalCore_SC5511A
-from hatdrivers.MiniCircuits_Switch import MiniCircuits_Switch
-from hatdrivers.switch_control import SWT as SWTCTRL
-from hatdrivers.Keysight_MXA_N9020A import Keysight_MXA_N9020A
+from instrument_drivers.base_drivers.Keysight_N5183B import Keysight_N5183B
+from instrument_drivers.base_drivers.Yokogawa_GS200 import YOKO
+from instrument_drivers.base_drivers.SignalCore_sc5511a import SignalCore_SC5511A
+from instrument_drivers.base_drivers.MiniCircuits_Switch import MiniCircuits_Switch
+from instrument_drivers.base_drivers.switch_control import SWT as SWTCTRL
+from instrument_drivers.base_drivers.Keysight_MXA_N9020A import Keysight_MXA_N9020A
 # from hatdrivers.Tektronix_AWG5014C import Tektronix_AWG5014C
-from hatdrivers import DLL
+from instrument_drivers import DLL
 # from hatdrivers.YROKO import YROKO_Client
 
 #customized drivers
-from hatdrivers.Hat_P9374A import Hat_P9374A
-from hatdrivers.Hat_ENA5071C  import Hat_ENA5071C
+from instrument_drivers.driver_wrappers.Hat_P9374A import Hat_P9374A
+from instrument_drivers.driver_wrappers.Hat_ENA5071C  import Hat_ENA5071C
 #Metainstruments and tools ... 
-from hatdrivers.meta_instruments import Modes
+from instrument_drivers.meta_instruments import Modes
 
 from qcodes.instrument_drivers.AlazarTech.ATS9870 import AlazarTech_ATS9870
 #%%AWG
@@ -76,7 +76,7 @@ swt_modes = {
 SWT = SWTCTRL(SWT1,SWT2,swt_modes)
 
 #%% Load previous modes
-Modes.load_from_folder(globals(),path = "E:\Data\Cooldown_20210408\SNAIL_Amps\C1\Modes_info")
+Modes.load_from_folder(globals(),path = "Z:\Texas\Cooldown_20210525\PC_HPAl_etch_3\saved_vna_settings")
 #%%SignalCores z
 dll_path = r'C:\Users\Hatlab_3\Desktop\RK_Scripts\New_Drivers\HatDrivers\DLL\sc5511a.dll'
 SC5 = SignalCore_SC5511A('SigCore5', serial_number = '10001851', debug = True)

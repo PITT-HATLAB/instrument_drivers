@@ -15,5 +15,5 @@ setup(name='HatDrivers',
       author='Ryan Kaufman',
       author_email='rrk26@pitt.edu',
       license='MIT',
-      packages=['hatdrivers'],
+      packages=['instrument_drivers'],
       zip_safe=False)

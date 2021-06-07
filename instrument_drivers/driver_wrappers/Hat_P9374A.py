@@ -6,10 +6,11 @@ Created on Tue Dec  8 16:31:55 2020
 
 purpose: add additional functionality to PNA driver without adding bulk to base driver
 """
-from hatdrivers.Keysight_P9374A import Keysight_P9374A
+from instrument_drivers.base_drivers.Keysight_P9374A import Keysight_P9374A
 import numpy as np
 import easygui
 import time
+from plottr.data import datadict_storage as dds, datadict as dd
 
 class Hat_P9374A(Keysight_P9374A): 
     
@@ -20,13 +21,13 @@ class Hat_P9374A(Keysight_P9374A):
         self.averaging(1)
         self.ifbw(3000)
         self.avgnum(15)
-        self.power(-20)
+        self.power(-43)
     
     def average_restart(self):
         self.write('SENS1:AVER:CLE')
         
     def average(self, number): 
-        #setting averaging timeout, it takes 52.02s for 100 traces to average with 1601 points and 2kHz IFBW, so 
+        #setting averaging timeout, it takes 52.02s for 100 traces to average with 1601 points and 2kHz IFBW
         '''
         Sets the number of averages taken, waits until the averaging is done, then gets the trace
         '''
@@ -41,28 +42,52 @@ class Hat_P9374A(Keysight_P9374A):
         time.sleep(total_time)
         return self.gettrace()
     
-    def savetrace(self, avgnum = 3, savedir = None): 
+    def savetrace(self, avgnum = 3, savedir = None, name = None): 
         if savedir == None:
-            savedir = easygui.filesavebox("Choose file to save trace information: ")
+            savedir = easygui.diropenbox("Choose file location: ")
             assert savedir != None
+        if name == None: 
+            name = easygui.enterbox("Enter Trace Name: ")
+            assert name != None
             
         elif savedir == "previous": 
             savedir = self.previous_save
             assert savedir != None
-        fdata = self.getSweepData()
+            
+        data = dd.DataDict(
+            frequency = dict(unit='Hz'),
+            power = dict(axes=['frequency'], unit = 'dB'), 
+            phase = dict(axes=['frequency'], unit = 'Degrees'),
+        )
+
         prev_trform = self.trform()
-        self.trform('POL')
-        tracedata = self.average(avgnum)
+
+        with dds.DDH5Writer(savedir, data, name=name) as writer:
+            freqs = self.getSweepData() #1XN array, N in [1601,1000]
+            vnadata = np.array(self.average(avgnum)) #2xN array, N in [1601, 1000]
+            writer.add_data(
+                    frequency = freqs,
+                    power = vnadata[0],
+                    phase = vnadata[1]
+                )
+
         self.trform(prev_trform)
         self.previous_save = savedir
-        import h5py
-        file = h5py.File(savedir, 'w')
-        file.create_dataset("VNA Frequency (Hz)", data = fdata)
-        file.create_dataset("S11", data = tracedata)
-        file.create_dataset("Phase (deg)", data = tracedata[1])
-        file.create_dataset("Power (dB)", data = tracedata[0])
-        file.close()
+    
+    # def fit_mode_onscreen(self, avgnum = 3, savedir = None, name = None, coupling = None):
         
+    #     self.savetrace(avgnum = avgnum, savedir = savedir, name = name)
+        
+        
+        
+    #     if coupling.lower() == 'over': 
+            
+    #     elif coupling.lower() == 'under': 
+        
+    #     elif coupling.lower() == 'critical': 
+        
+    #     else: 
+    #         raise Exception('Coupling unsupported, user \'over\', \'under\', or \'critical\' ')
     def save_important_info(self, savedir = None):
         if savedir == None:
             import easygui 
