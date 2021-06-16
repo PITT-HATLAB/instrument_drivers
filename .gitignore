@@ -5,3 +5,12 @@ hatdrivers/__pycache__/Keysight_N5183B.cpython-37.pyc
 hatdrivers/__pycache__/Agilent_ENA_5071C.cpython-37.pyc
 LOCAL_INIT.py
 hatdrivers/__pycache__/Hat_P9374A.cpython-37.pyc
+instrument_drivers/alazar_utilities/controller/__pycache__/demodulator.cpython-37.pyc
+instrument_drivers/alazar_utilities/controller/__pycache__/ATSChannelController.cpython-37.pyc
+instrument_drivers/alazar_utilities/controller/__pycache__/alazar_multidim_parameters.cpython-37.pyc
+instrument_drivers/alazar_utilities/controller/__pycache__/alazar_channel.cpython-37.pyc
+instrument_drivers/alazar_utilities/controller/__pycache__/acquisition_parameters.cpython-37.pyc
+instrument_drivers/alazar_utilities/controller/__pycache__/__init__.cpython-37.pyc
+instrument_drivers/alazar_utilities/__pycache__/__init__.cpython-37.pyc
+instrument_drivers/driver_wrappers/__pycache__/Hat_AWG5014C.cpython-37.pyc
+LOCAL_INIT.py

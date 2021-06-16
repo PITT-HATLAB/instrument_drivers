@@ -25,6 +25,7 @@ from instrument_drivers.base_drivers.Keysight_MXA_N9020A import Keysight_MXA_N90
 # from hatdrivers.Tektronix_AWG5014C import Tektronix_AWG5014C
 from instrument_drivers import DLL
 # from hatdrivers.YROKO import YROKO_Client
+from qcodes.instrument_drivers.tektronix.AWG5014 import Tektronix_AWG5014
 
 #customized drivers
 from instrument_drivers.driver_wrappers.Hat_P9374A import Hat_P9374A
@@ -52,7 +53,8 @@ SigGen = Keysight_N5183B("SigGen", address = "TCPIP0::169.254.29.44::inst0::INST
 # QGen = Keysight_N5183B("QGen", address = "TCPIP0::169.254.161.164::inst0::INSTR")
 #%%
 # try: 
-yoko2 = YOKO('yoko2', address = "TCPIP::169.254.34.35::INSTR")
+yoko2 = YOKO('yoko2',
+             address = "TCPIP::169.254.34.35::INSTR")
 # except: 
 #     print("YOKO not connected")
 #%%
@@ -79,9 +81,9 @@ SWT = SWTCTRL(SWT1,SWT2,swt_modes)
 Modes.load_from_folder(globals(),path = "Z:\Texas\Cooldown_20210525\PC_HPAl_etch_3\saved_vna_settings")
 #%%SignalCores z
 dll_path = r'C:\Users\Hatlab_3\Desktop\RK_Scripts\New_Drivers\HatDrivers\DLL\sc5511a.dll'
-SC5 = SignalCore_SC5511A('SigCore5', serial_number = '10001851', debug = True)
+# 
 SC9 = SignalCore_SC5511A('SigCore9', serial_number = '1000190E', debug = True)
 # YROKO1 = instruments.create('YROKO1','YROKO_Client')SC
-from qcodes.instrument_drivers.tektronix.AWG5014 import Tektronix_AWG5014
-
+# from qcodes.instrument_drivers.tektronix.AWG5014 import Tektronix_AWG5014
+SC5 = SignalCore_SC5511A('SigCore5', serial_number = '10001851', debug = True)
 
