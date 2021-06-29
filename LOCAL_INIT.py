@@ -22,6 +22,7 @@ from instrument_drivers.base_drivers.SignalCore_sc5511a import SignalCore_SC5511
 from instrument_drivers.base_drivers.MiniCircuits_Switch import MiniCircuits_Switch
 from instrument_drivers.base_drivers.switch_control import SWT as SWTCTRL
 from instrument_drivers.base_drivers.Keysight_MXA_N9020A import Keysight_MXA_N9020A
+from instrument_drivers.base_drivers.Keysight_33600A import Keysight_33600A
 # from hatdrivers.Tektronix_AWG5014C import Tektronix_AWG5014C
 from instrument_drivers import DLL
 # from hatdrivers.YROKO import YROKO_Client
@@ -32,7 +33,7 @@ from instrument_drivers.driver_wrappers.Hat_P9374A import Hat_P9374A
 from instrument_drivers.driver_wrappers.Hat_ENA5071C  import Hat_ENA5071C
 #Metainstruments and tools ... 
 from instrument_drivers.meta_instruments import Modes
-
+from plottr.apps.autoplot import main
 from qcodes.instrument_drivers.AlazarTech.ATS9870 import AlazarTech_ATS9870
 #%%AWG
 from qcodes.instrument_drivers.tektronix.AWG5014 import Tektronix_AWG5014
@@ -62,6 +63,10 @@ yoko2 = YOKO('yoko2',
 SWT1 = MiniCircuits_Switch('SWT1',address = 'http://169.254.47.255')
 SWT2 = MiniCircuits_Switch('SWT2',address = 'http://169.254.47.253')
 
+#%% 
+
+acsource = Keysight_33600A('acsource',address='TCPIP::169.254.5.21::INSTR')
+
 #%%update SWT Config
 
 swt_modes = {
@@ -78,7 +83,7 @@ swt_modes = {
 SWT = SWTCTRL(SWT1,SWT2,swt_modes)
 
 #%% Load previous modes
-Modes.load_from_folder(globals(),path = "Z:\Texas\Cooldown_20210525\PC_HPAl_etch_3\saved_vna_settings")
+Modes.load_from_folder(globals(),path = "Z:\Data\C1\C1_Hakan\mode_info")
 #%%SignalCores z
 dll_path = r'C:\Users\Hatlab_3\Desktop\RK_Scripts\New_Drivers\HatDrivers\DLL\sc5511a.dll'
 # 

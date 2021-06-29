@@ -472,6 +472,10 @@ class Keysight_MXA_N9020A(VisaInstrument):
         file.create_dataset("Freqs (Hz)", data = SA_data[:, 0])
         file.create_dataset("Noise Power (dBm)", data = SA_data[ :, 1])
         file.close()
+        
+    def gettrace(self, avgnum = 1): 
+        SA_data = self.get_data(count = avgnum)
+        return SA_data[:, 0], SA_data[ :, 1]
     
     def print_important_info(self): 
         print(f"Span: {self.fspan()}")
