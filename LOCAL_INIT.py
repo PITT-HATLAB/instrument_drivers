@@ -30,6 +30,7 @@ from qcodes.instrument_drivers.tektronix.AWG5014 import Tektronix_AWG5014
 #customized drivers
 from instrument_drivers.driver_wrappers.Hat_P9374A import Hat_P9374A
 from instrument_drivers.driver_wrappers.Hat_ENA5071C  import Hat_ENA5071C
+from instrument_drivers.driver_wrappers.Hat_MXA_N9020A import Hat_MXA_N9020A
 #Metainstruments and tools ... 
 from instrument_drivers.meta_instruments import Modes
 
@@ -41,7 +42,7 @@ AWG = Tk_old('AWG', 'TCPIP0::169.254.116.102::inst0::INSTR')
 # Alazar = AlazarTech_ATS9870('Alazar')
 #%%
 # MXA = Keysight_MXA_N9020A("MXA", address = 'TCPIP0::169.254.180.116::INSTR')
-CXA = Keysight_MXA_N9020A("CXA", address = 'TCPIP0::169.254.110.116::INSTR')
+CXA = Hat_MXA_N9020A("CXA", address = 'TCPIP0::169.254.110.116::INSTR')
 #%%
 # VNA = Agilent_ENA_5071C("VNA", address = "TCPIP0::169.254.169.64::inst0::INSTR", timeout = 30)
 pVNA = Hat_P9374A("pVNA", address = "TCPIP0::Hatlab_3-PC::hislip0,4880::INSTR", timeout = 3)
