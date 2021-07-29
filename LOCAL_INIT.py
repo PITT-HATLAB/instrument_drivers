@@ -67,7 +67,7 @@ SWT2 = MiniCircuits_Switch('SWT2',address = 'http://169.254.47.253')
 
 acsource = Keysight_33600A('acsource',address='TCPIP::169.254.5.21::INSTR')
 
-#%%update SWT Config
+ #%%update SWT Config
 
 swt_modes = {
     "4":["xxx0xx0x", "xxxxxxxx"],
@@ -87,8 +87,8 @@ Modes.load_from_folder(globals(),path = "Z:\Data\C1\C1_Hakan\mode_info")
 #%%SignalCores z
 dll_path = r'C:\Users\Hatlab_3\Desktop\RK_Scripts\New_Drivers\HatDrivers\DLL\sc5511a.dll'
 # 
-SC9 = SignalCore_SC5511A('SigCore9', serial_number = '1000190E', debug = True)
+#SC9 = SignalCore_SC5511A('SigCore9', serial_number = '1000190E', debug = True)
 # YROKO1 = instruments.create('YROKO1','YROKO_Client')SC
 # from qcodes.instrument_drivers.tektronix.AWG5014 import Tektronix_AWG5014
-SC5 = SignalCore_SC5511A('SigCore5', serial_number = '10001851', debug = True)
+SC5 = SignalCore_SC5511A('SigCore5', serial_number = '10001852', debug = True)
 
