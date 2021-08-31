@@ -29,19 +29,27 @@ class YOKO(GS200):
         self._cached_range_value = self.current_range()
         
         
-    def change_current(self,new_curr):
+    def change_current(self,new_curr, ramp_rate = None):
         #if the difference is less than a milliamp, the steps will be 0.1uA, otherwise, 1uA
         #the net rate will be the same either way: but limited by the TCPIP transfer speed of the YOKO in the 0.1uA case
+
         old_curr = self.current()
-        if np.abs(new_curr-old_curr) > 1e-3: 
-            rate = 1e-4 #A/s
-            step = 1e-6
-            delay = step/rate
-            self.ramp_current(new_curr, step, delay)
+        if ramp_rate == None: 
+            if np.abs(new_curr-old_curr) > 1e-3: 
+                rate = 1e-4 #A/s
+                step = 1e-6
+                delay = step/rate
+                self.ramp_current(new_curr, step, delay)
+            else: 
+                rate = 1e-4 #A/s
+                step = 1e-7
+                delay = step/rate #I suspect this is too fast for the TCP protocol to keep up
+                self.ramp_current(new_curr, step, delay)
         else: 
-            rate = 1e-4 #A/s
-            step = 1e-7
-            delay = step/rate #I suspect this is too fast for the TCP protocol to keep up
+            rate = ramp_rate #A/s
+            delay = 3e-3#s
+            step = ramp_rate*delay #A
+            print("YOKO Delay: ", delay*1e3, ' ms')
             self.ramp_current(new_curr, step, delay)
             
     def bump(self, bump): 

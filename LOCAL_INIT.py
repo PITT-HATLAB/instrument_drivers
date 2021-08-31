@@ -49,14 +49,14 @@ pVNA = Hat_P9374A("pVNA", address = "TCPIP0::Hatlab_3-PC::hislip0,4880::INSTR", 
 #for little VNA: TCPIP0::Hatlab_3-PC::hislip0,4880::INSTR\
 #For big VNA: (RIP): TCPIP0::169.254.152.68::inst0::INSTR
 #For big VNA2: TCPIP0::169.254.169.64::inst0::INSTR
-#%%
+#%%                      
 SigGen = Keysight_N5183B("SigGen", address = "TCPIP0::169.254.29.44::inst0::INSTR")
 # QGen = Keysight_N5183B("QGen", address = "TCPIP0::169.254.161.164::inst0::INSTR")
 #%%
 # try: 
 yoko2 = YOKO('yoko2',
              address = "TCPIP::169.254.34.35::INSTR")
-# except: 
+# except:           
 #     print("YOKO not connected")
 #%%
 # # Switches need to be initialized externally, then fed into the switch_control file explicitly
@@ -66,25 +66,24 @@ SWT2 = MiniCircuits_Switch('SWT2',address = 'http://169.254.47.253')
 #%%update SWT Config
 
 swt_modes = {
-    "4":["xxx0xx0x", "xxxxxxxx"],
-    "5":["xxx00x1x","xxxxxxxx"],
-    "6":["xxx01x1x", "xxxxxxxx"],
-    "A":["xxxxxxxx", "xxx10100"], 
-    "B":["xxxxxxxx", "x100xx00"], 
-    "G":["xxxxxxxx", "xxx11x00"],
-    'H0': ["xxxxxxx0", "xxxxxxxx"],
-    'H1': ["xxxxxxx1", "xxxxxxxx"]
+    "A":["xxx000xx", "xxxxxxxx"],
+    "A_MX": ["xxx011xx", "xxxxxxxx"],
+    "D":["xxx100xx", "xxxxxxxx"],
+    "D_MX":["xxx111xx", "xxxxxxxx"],
+    "2":["xx0xxxxx", "xxxxxxxx"],
+    "4":["xx1xxxxx", "xxxxxxxx"]
     }
 
 SWT = SWTCTRL(SWT1,SWT2,swt_modes)
 
 #%% Load previous modes
-Modes.load_from_folder(globals(),path = "Z:\Texas\Cooldown_20210525\PC_HPAl_etch_3\saved_vna_settings")
+Modes.load_from_folder(globals(),path = "Z:\Data\SH_5B1_4141\mode_info")
 #%%SignalCores z
 dll_path = r'C:\Users\Hatlab_3\Desktop\RK_Scripts\New_Drivers\HatDrivers\DLL\sc5511a.dll'
 # 
 SC9 = SignalCore_SC5511A('SigCore9', serial_number = '1000190E', debug = True)
 # YROKO1 = instruments.create('YROKO1','YROKO_Client')SC
 # from qcodes.instrument_drivers.tektronix.AWG5014 import Tektronix_AWG5014
-SC5 = SignalCore_SC5511A('SigCore5', serial_number = '10001851', debug = True)
+# SC4 = SignalCore_SC5511A('SigCore4', serial_number = '10001851', debug = True)
+# SC5 = SignalCore_SC5511A('SigCore5', serial_number = '10001852', debug = True)
 

@@ -144,8 +144,10 @@ class mode(Instrument):
         if self.gen_att() != None:
             print(f"SET GENERATOR ATTENUATION TO {self.gen_att()}")
         if self.vna_att != None:
-            print(f"SET VNA ATTENUATION TO {self.vna_att()}")
-            
+            try: 
+                print(f"SET VNA ATTENUATION TO {self.vna_att()}")
+            except: 
+                pass
     def print(self):
         return ser.toParamDict([self])
     

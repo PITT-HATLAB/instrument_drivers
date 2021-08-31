@@ -128,7 +128,7 @@ class SignalCore_SC5511A(Instrument):
                            set_cmd=self.do_set_power,
                            set_parser=float,
                            unit='dBm',
-                           vals=Numbers(min_value=-144,max_value=19))
+                           vals=Numbers(min_value=-80,max_value=19))
 
         self.add_parameter('output_status',
                            label='output_status',
