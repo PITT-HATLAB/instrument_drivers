@@ -18,13 +18,14 @@ import time
 
 class YROKO(): 
 
-    def __init__(self, name):
+    def __init__(self, name, IP = '169.254.6.22'):
         
         '''
         Initializes the YROKO
         - Uses YROKO TCP/IP socket. IP: 169.254.6.22 on Texas Switch
         - Port depends on the channel you would like to use. Each channel is run seperately on its own TCP/IP Socket
         '''
+        self.IP = IP
         self.ch1_true_zero = -0.00106811e-3 #this is an offset that was tuned to make sure that there was no jumping when you plug in the magnet. 
         self.ch2_true_zero = -0.00106811e-3
         self.ch3_true_zero = 0
@@ -57,7 +58,7 @@ class YROKO():
             # Create a TCP/IP connection
             self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             # Connect the socket to the port where the server is listening
-            server_address = ('169.254.6.22', port) #this IP is only a specific location in the Texas Switch. Have to develop means of detection
+            server_address = (self.IP, port) #this IP is only a specific location in the Texas Switch. Have to develop means of detection
             print >>sys.stderr, 'Connecting to '+str(server_address[0]) +' port '+str(port) +' (YROKO channel '+str(self.channel)+')'
             self.sock.connect(server_address)
             print("Connection successful")
@@ -68,7 +69,8 @@ class YROKO():
             print('YROKO channel '+str(self.channel)+' current: '+str(self.current*1000)+'mA')
             print("Initialization Process Complete\n")
         else:
-            raise Exception("Channel Requested Doesn't exist... Pick One: (YROKO1,YROKO2,YROKO3)")    
+            raise Exception("Channel Requested Doesn't exist... Pick One: (YROKO1,YROKO2,YROKO3)") 
+            
     def TCP_Exchange(self,message, wait = True): #framework for sending a message and waiting for a response
         feedback = ''
         print ("Sending: "+message)
@@ -120,8 +122,6 @@ class YROKO():
 #    ################################################################################################   GUI Class
         
 class YROKO_GUI(): 
-    
-    
     
     def __init__(self, name): 
         self.ch1_true_zero = -0.00106811e-3 #this is an offset that was tuned to make sure that there was little jumping when you plug in the magnet. 
