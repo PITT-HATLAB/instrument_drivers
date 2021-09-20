@@ -24,7 +24,7 @@ from instrument_drivers.base_drivers.switch_control import SWT as SWTCTRL
 from instrument_drivers.base_drivers.Keysight_MXA_N9020A import Keysight_MXA_N9020A
 # from hatdrivers.Tektronix_AWG5014C import Tektronix_AWG5014C
 from instrument_drivers import DLL
-# from hatdrivers.YROKO import YROKO_Client
+from hatdrivers.YROKO import YROKO_Client
 from qcodes.instrument_drivers.tektronix.AWG5014 import Tektronix_AWG5014
 
 #customized drivers
@@ -81,9 +81,9 @@ Modes.load_from_folder(globals(),path = "Z:\Data\SH_5B1_4141\mode_info")
 #%%SignalCores z
 dll_path = r'C:\Users\Hatlab_3\Desktop\RK_Scripts\New_Drivers\HatDrivers\DLL\sc5511a.dll'
 # 
-SC9 = SignalCore_SC5511A('SigCore9', serial_number = '1000190E', debug = True)
-# YROKO1 = instruments.create('YROKO1','YROKO_Client')SC
+# SC9 = SignalCore_SC5511A('SigCore9', serial_number = '1000190E', debug = True)
+# YROKO1 = instruments.create('YROKO1','YROKO_Client')
 # from qcodes.instrument_drivers.tektronix.AWG5014 import Tektronix_AWG5014
-# SC4 = SignalCore_SC5511A('SigCore4', serial_number = '10001851', debug = True)
+SC4 = SignalCore_SC5511A('SigCore4', serial_number = '10001851', debug = True)
 # SC5 = SignalCore_SC5511A('SigCore5', serial_number = '10001852', debug = True)
 
