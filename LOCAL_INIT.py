@@ -24,7 +24,7 @@ from instrument_drivers.base_drivers.switch_control import SWT as SWTCTRL
 from instrument_drivers.base_drivers.Keysight_MXA_N9020A import Keysight_MXA_N9020A
 # from hatdrivers.Tektronix_AWG5014C import Tektronix_AWG5014C
 from instrument_drivers import DLL
-from hatdrivers.YROKO import YROKO_Client
+from instrument_drivers.yroko.YROKO_Client import YROKO
 from qcodes.instrument_drivers.tektronix.AWG5014 import Tektronix_AWG5014
 
 #customized drivers
@@ -54,10 +54,12 @@ SigGen = Keysight_N5183B("SigGen", address = "TCPIP0::169.254.29.44::inst0::INST
 # QGen = Keysight_N5183B("QGen", address = "TCPIP0::169.254.161.164::inst0::INSTR")
 #%%
 # try: 
-yoko2 = YOKO('yoko2',
-             address = "TCPIP::169.254.34.35::INSTR")
+# yoko2 = YOKO('yoko2',
+             # address = "TCPIP::169.254.34.35::INSTR")
 # except:           
 #     print("YOKO not connected")
+# yoko1 = YOKO('yoko1', address = 'TCPIP::169.254.239.5::INSTR')
+YROKO1 = YROKO('YROKO1')
 #%%
 # # Switches need to be initialized externally, then fed into the switch_control file explicitly
 SWT1 = MiniCircuits_Switch('SWT1',address = 'http://169.254.47.255')
@@ -82,7 +84,7 @@ Modes.load_from_folder(globals(),path = "Z:\Data\SH_5B1_4141\mode_info")
 dll_path = r'C:\Users\Hatlab_3\Desktop\RK_Scripts\New_Drivers\HatDrivers\DLL\sc5511a.dll'
 # 
 # SC9 = SignalCore_SC5511A('SigCore9', serial_number = '1000190E', debug = True)
-# YROKO1 = instruments.create('YROKO1','YROKO_Client')
+
 # from qcodes.instrument_drivers.tektronix.AWG5014 import Tektronix_AWG5014
 SC4 = SignalCore_SC5511A('SigCore4', serial_number = '10001851', debug = True)
 # SC5 = SignalCore_SC5511A('SigCore5', serial_number = '10001852', debug = True)
