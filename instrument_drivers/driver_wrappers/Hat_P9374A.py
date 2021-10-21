@@ -11,6 +11,8 @@ import numpy as np
 import easygui
 import time
 from plottr.data import datadict_storage as dds, datadict as dd
+from data_processing.fitting.QFit import fit, plotRes, getData_from_datadict, reflectionFunc, rounder
+import inspect
 
 class Hat_P9374A(Keysight_P9374A): 
     
@@ -42,7 +44,7 @@ class Hat_P9374A(Keysight_P9374A):
         time.sleep(total_time)
         return self.gettrace()
     
-    def savetrace(self, avgnum = 3, savedir = None, name = None): 
+    def savetrace(self, avgnum = 10, savedir = None, name = None): 
         if savedir == None:
             savedir = easygui.diropenbox("Choose file location: ")
             assert savedir != None
@@ -70,24 +72,35 @@ class Hat_P9374A(Keysight_P9374A):
                     power = vnadata[0],
                     phase = vnadata[1]
                 )
+            self.filepath = writer.file_path
 
         self.trform(prev_trform)
         self.previous_save = savedir
+        
+        return self.filepath
     
-    # def fit_mode_onscreen(self, avgnum = 3, savedir = None, name = None, coupling = None):
+    def fit_mode_onscreen(self, avgnum = 10, savedir = None, name = None, QextGuess = 200, QintGuess = 2000, ltrim = 0, rtrim = 1):
         
-    #     self.savetrace(avgnum = avgnum, savedir = savedir, name = name)
+        filepath = self.savetrace(avgnum = avgnum, savedir = savedir, name = name)
+
+        (freq, real, imag, mag, phase) = getData_from_datadict(filepath, plot_data=0)
+        freq = freq[ltrim:-rtrim]
+        real = real[ltrim:-rtrim]
+        imag = imag[ltrim:-rtrim]
+        mag = mag[ltrim:-rtrim]
+        phase = phase[ltrim:-rtrim]
+        
+        popt, pcov = fit(freq, real, imag, mag, phase, Qguess=(QextGuess, QintGuess), magBackGuess=.01, phaseGuess = 0)  #(ext, int)   
+    
+        print(f'f (Hz): {rounder(popt[2]/2/np.pi)}', )
+        fitting_params = list(inspect.signature(reflectionFunc).parameters.keys())[1:]
+        for i in range(2):
+            print(f'{fitting_params[i]}: {rounder(popt[i])} +- {rounder(np.sqrt(pcov[i, i]))}')
+        Qtot = popt[0] * popt[1] / (popt[0] + popt[1])
+        print('Q_tot: ', rounder(Qtot), '\nT1 (s):', rounder(Qtot/popt[2]), f"Kappa: {rounder(popt[2]/2/np.pi/Qtot)}", )
+        plotRes(freq, real, imag, mag, phase, popt)
         
         
-        
-    #     if coupling.lower() == 'over': 
-            
-    #     elif coupling.lower() == 'under': 
-        
-    #     elif coupling.lower() == 'critical': 
-        
-    #     else: 
-    #         raise Exception('Coupling unsupported, user \'over\', \'under\', or \'critical\' ')
     def save_important_info(self, savedir = None):
         if savedir == None:
             import easygui 

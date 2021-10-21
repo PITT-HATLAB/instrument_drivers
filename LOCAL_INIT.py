@@ -54,12 +54,11 @@ SigGen = Keysight_N5183B("SigGen", address = "TCPIP0::169.254.29.44::inst0::INST
 # QGen = Keysight_N5183B("QGen", address = "TCPIP0::169.254.161.164::inst0::INSTR")
 #%%
 # try: 
-# yoko2 = YOKO('yoko2',
-             # address = "TCPIP::169.254.34.35::INSTR")
+yoko2 = YOKO('yoko2',address = "TCPIP::169.254.34.35::INSTR")
 # except:           
 #     print("YOKO not connected")
 # yoko1 = YOKO('yoko1', address = 'TCPIP::169.254.239.5::INSTR')
-YROKO1 = YROKO('YROKO1')
+# YROKO1 = YROKO('YROKO1')
 #%%
 # # Switches need to be initialized externally, then fed into the switch_control file explicitly
 SWT1 = MiniCircuits_Switch('SWT1',address = 'http://169.254.47.255')
@@ -68,10 +67,10 @@ SWT2 = MiniCircuits_Switch('SWT2',address = 'http://169.254.47.253')
 #%%update SWT Config
 
 swt_modes = {
-    "A":["xxx000xx", "xxxxxxxx"],
-    "A_MX": ["xxx011xx", "xxxxxxxx"],
-    "D":["xxx100xx", "xxxxxxxx"],
-    "D_MX":["xxx111xx", "xxxxxxxx"],
+    "B":["xxx000xx", "xxxxxxxx"],
+    "B_MX": ["xxx011xx", "xxxxxxxx"],
+    "G":["xxx100xx", "xxxxxxxx"],
+    "B_MX":["xxx111xx", "xxxxxxxx"],
     "2":["xx0xxxxx", "xxxxxxxx"],
     "4":["xx1xxxxx", "xxxxxxxx"]
     }
@@ -83,7 +82,7 @@ Modes.load_from_folder(globals(),path = "Z:\Data\SH_5B1_4141\mode_info")
 #%%SignalCores z
 dll_path = r'C:\Users\Hatlab_3\Desktop\RK_Scripts\New_Drivers\HatDrivers\DLL\sc5511a.dll'
 # 
-# SC9 = SignalCore_SC5511A('SigCore9', serial_number = '1000190E', debug = True)
+SC9 = SignalCore_SC5511A('SigCore9', serial_number = '1000190E', debug = True)
 
 # from qcodes.instrument_drivers.tektronix.AWG5014 import Tektronix_AWG5014
 SC4 = SignalCore_SC5511A('SigCore4', serial_number = '10001851', debug = True)
