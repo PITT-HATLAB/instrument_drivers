@@ -330,6 +330,8 @@ class SignalCore_SC5511A(Instrument):
             'manufacture_date': date_decode(device_info.manufacture_date)
             }
         return IDN
+    def print_info(self): 
+        print("Power: "+str(self.power())+'\n'+"Frequency: "+str(self.frequency()))
 
 if __name__ == "__main__":
     SC1 = SignalCore_SC5511A("SC1", "100024E0")

@@ -92,9 +92,22 @@ class mode(Instrument):
         self.add_parameter('vna_att', 
                            set_cmd = None)
         
-                           
+        self.add_parameter('gen2_power', 
+                           set_cmd = None, 
+                           # initial_value = par_dict['power'], 
+                           vals = vals.Numbers(), 
+                           unit = 'dBm'
+                           )
+        self.add_parameter('gen2_frequency', 
+                           set_cmd = None, 
+                           # initial_value = par_dict["frequency"],
+                           vals = vals.Numbers(0),
+                           unit = 'Hz'
+                           )
+        self.add_parameter('gen2_att', 
+                           set_cmd = None)
         
-    def pull(self, VNA = None, SWT = None, CS = None, Gen = None): #this needs to be the whole damn instrument
+    def pull(self, VNA = None, SWT = None, CS = None, Gen = None, Gen2= None): #this needs to be the whole damn instrument
         if VNA != None: 
             print(f"pulling from: {VNA}")
             self.fcenter(VNA.fcenter())
@@ -114,9 +127,12 @@ class mode(Instrument):
             print(f"pulling from: {Gen}")
             self.gen_frequency(Gen.frequency())
             self.gen_power(Gen.power())
+        if Gen2!= None: 
+            self.gen2_frequency(Gen2.frequency())
+            self.gen2_power(Gen2.power())
         print('----------------\n REMEMBER TO SET ATTENUATION\n-----------------')
     
-    def push(self, VNA = None, SWT = None, Gen = None, CS = None):
+    def push(self, VNA = None, SWT = None, Gen = None, CS = None, Gen2 = None):
         if VNA != None: 
             if self.fcenter() != None: 
                 VNA.fcenter(self.fcenter())
@@ -139,10 +155,15 @@ class mode(Instrument):
         if Gen != None and self.gen_power() != None and self.gen_frequency() != None: 
             Gen.power(self.gen_power())
             Gen.frequency(self.gen_frequency())
+        if Gen2 != None and self.gen_power() != None and self.gen2_frequency() != None: 
+            Gen2.power(self.gen2_power())
+            Gen2.frequency(self.gen2_frequency())
         if CS != None and self.bias_current() != None: 
             CS.change_current(self.bias_current())
         if self.gen_att() != None:
             print(f"SET GENERATOR ATTENUATION TO {self.gen_att()}")
+        if self.gen2_att() != None:
+            print(f"SET GENERATOR 2 ATTENUATION TO {self.gen2_att()}")
         if self.vna_att != None:
             try: 
                 print(f"SET VNA ATTENUATION TO {self.vna_att()}")

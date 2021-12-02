@@ -139,4 +139,41 @@ class Hat_P9374A(Keysight_P9374A):
         self.math('DIV')
         self.electrical_delay(0)
         self.set_to_manual()
+        
+    def scattering_mtx_pair(self, datadir, fcenter1, fcenter2, fspan, SWT_info, avgnum = 5): 
+        [SWT, name1in, name2in, name1out, name2out] = SWT_info
+        
+        #S11
+        SWT.set_mode_dict(name1in)
+        SWT.set_mode_dict(name1out)
+        self.fcenter(fcenter1)
+        self.fspan(fspan)
+        
+        self.savetrace(savedir = datadir, name = 'S11', avgnum = avgnum)
+        
+        #S22
+        SWT.set_mode_dict(name2in)
+        SWT.set_mode_dict(name2out)
+        self.fcenter(fcenter2)
+        self.fspan(fspan)
+        
+        self.savetrace(savedir = datadir, name = 'S22', avgnum = avgnum)
+        
+        #S12
+        SWT.set_mode_dict(name2in)
+        SWT.set_mode_dict(name1out+'_MX')
+        #needs a mixer set to the gain frequency
+        self.fcenter(fcenter2)
+        self.fspan(fspan)
+        
+        self.savetrace(savedir = datadir, name = 'S12', avgnum = avgnum)
+        
+        #S21
+        SWT.set_mode_dict(name1in)
+        SWT.set_mode_dict(name2out+'_MX')
+        #needs a mixer set to the gain frequency
+        self.fcenter(fcenter1)
+        self.fspan(fspan)
+        
+        self.savetrace(savedir = datadir, name = 'S21', avgnum = avgnum)
     

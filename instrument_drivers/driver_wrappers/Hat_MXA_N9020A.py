@@ -4,6 +4,7 @@ from plottr.data import datadict as dd
 from plottr.data import datadict_storage as dds 
 
 class Hat_MXA_N9020A(Keysight_MXA_N9020A):
+    
     def __init__(self,name: str, address: str = None, **kwargs):
         if address == None:
             raise Exception('TCPIP Address needed')
@@ -22,6 +23,7 @@ class Hat_MXA_N9020A(Keysight_MXA_N9020A):
         ax.set_xlabel('Frequency (GHz)')
         ax.set_ylabel('Power(dBm)')
         ax.plot(SA_data[:,0]/1e9, SA_data[:,1])
+        ax.grid()
         print(f"Max of trace: {np.max(SA_data[:, 1])}")
         self.print_important_info()
         return np.max(SA_data[:, 1])
@@ -41,3 +43,40 @@ class Hat_MXA_N9020A(Keysight_MXA_N9020A):
                     frequency = SA_data[:,0],
                     power = SA_data[:,1]
                 )
+            
+    def scattering_mtx_pair(self, datadir, fcenter1, fcenter2, fspan, SWT_info, avgnum = 500): 
+        [SWT, name1in, name2in, name1out, name2out] = SWT_info
+        
+        #S11
+        SWT.set_mode_dict(name1in)
+        SWT.set_mode_dict(name1out)
+        self.fcenter(fcenter1)
+        self.fspan(fspan)
+        
+        self.savetrace(savedir = datadir, name = 'S11', avgnum = avgnum)
+        
+        #S22
+        SWT.set_mode_dict(name2in)
+        SWT.set_mode_dict(name2out)
+        self.fcenter(fcenter2)
+        self.fspan(fspan)
+        
+        self.savetrace(savedir = datadir, name = 'S22', avgnum = avgnum)
+        
+        #S12
+        SWT.set_mode_dict(name2in)
+        SWT.set_mode_dict(name1out+'_MX')
+        #needs a mixer set to the gain frequency
+        self.fcenter(fcenter2)
+        self.fspan(fspan)
+        
+        self.savetrace(savedir = datadir, name = 'S12', avgnum = avgnum)
+        
+        #S21
+        SWT.set_mode_dict(name1in)
+        SWT.set_mode_dict(name2out+'_MX')
+        #needs a mixer set to the gain frequency
+        self.fcenter(fcenter1)
+        self.fspan(fspan)
+        
+        self.savetrace(savedir = datadir, name = 'S21', avgnum = avgnum)
