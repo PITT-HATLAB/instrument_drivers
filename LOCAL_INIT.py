@@ -67,7 +67,11 @@ SWT2 = MiniCircuits_Switch('SWT2',address = 'http://169.254.47.253')
 
 acsource = Keysight_33600A('acsource',address='TCPIP::169.254.5.21::INSTR')
 
- #%%update SWT Config
+#%%
+
+acsource2 = Keysight_33600A('acsource2',address='TCPIP::169.254.66.193::INSTR')
+
+#%%update SWT Config
 
 swt_modes = {
     "4":["xxx0xx0x", "xxxxxxxx"],
