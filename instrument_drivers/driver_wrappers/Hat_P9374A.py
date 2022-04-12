@@ -35,13 +35,24 @@ class Hat_P9374A(Keysight_P9374A):
         '''
         assert number > 0
         
+        del_time = 0.05
         prev_trform = self.trform()
         self.trform('POL')
-        total_time = self.sweep_time()*number+0.5
+        time.sleep(del_time)
+        self.average_type("POIN")
+        time.sleep(del_time)
+        self.trigger_source("MAN")
+        time.sleep(del_time)
+        total_time = self.sweep_time()*number+0.3 
+        #200ms window, if you need data faster talk to YR
+        time.sleep(del_time)
         self.avgnum(number)
-        self.average_restart()
-        print(f"Waiting {total_time}s for {number} averages...")
-        time.sleep(total_time)
+        time.sleep(del_time)
+        self.timeout(total_time)
+        time.sleep(del_time)
+        print(f"Waiting {np.round(total_time, 1)}s for {number} averages...")
+        self.last_msmt_msg = self.ask('ABORT; INITIATE:IMMEDIATE; *OPC?')
+        time.sleep(del_time)
         return self.gettrace()
     
     def savetrace(self, avgnum = 10, savedir = None, name = None): 
@@ -79,7 +90,7 @@ class Hat_P9374A(Keysight_P9374A):
         
         return self.filepath
     
-    def fit_mode_onscreen(self, avgnum = 10, savedir = None, name = None, QextGuess = 200, QintGuess = 2000, ltrim = 0, rtrim = 1):
+    def fit_mode_onscreen(self, avgnum = 10, savedir = None, name = None, QextGuess = 200, QintGuess = 2000, ltrim = 0, rtrim = 1, magBackGuess = 0.01):
         
         filepath = self.savetrace(avgnum = avgnum, savedir = savedir, name = name)
 
@@ -90,7 +101,7 @@ class Hat_P9374A(Keysight_P9374A):
         mag = mag[ltrim:-rtrim]
         phase = phase[ltrim:-rtrim]
         
-        popt, pcov = fit(freq, real, imag, mag, phase, Qguess=(QextGuess, QintGuess), magBackGuess=.01, phaseGuess = 0)  #(ext, int)   
+        popt, pcov = fit(freq, real, imag, mag, phase, Qguess=(QextGuess, QintGuess), magBackGuess=magBackGuess, phaseGuess = 0)  #(ext, int)   
     
         print(f'f (Hz): {rounder(popt[2]/2/np.pi)}', )
         fitting_params = list(inspect.signature(reflectionFunc).parameters.keys())[1:]
@@ -125,22 +136,20 @@ class Hat_P9374A(Keysight_P9374A):
         self.averaging(1)
         self.avgnum(3)
         self.trform('MLOG')
-        self.trigger_source('INT')
+        self.trigger_source('IMM')
+        self.average_type('SWE')
         
-    def renormalize(self, num_avgs): 
-        self.averaging(1)
-        self.avgnum(num_avgs)
-        self.prev_elec_delay = self.electrical_delay()
-        s_per_trace = self.sweep_time()
-        wait_time = s_per_trace*num_avgs*1.3 + 2
-        print(f'Renormalizing, waiting {wait_time} seconds for averaging...')
-        time.sleep(wait_time)
+        
+    def renormalize(self, num_avgs, pwr_bump = 0): 
+        self.power(self.power()+pwr_bump)
+        self.average(num_avgs)
         self.data_to_mem()
         self.math('DIV')
         self.electrical_delay(0)
+        self.power(self.power()-pwr_bump)
         self.set_to_manual()
         
-    def scattering_mtx_pair(self, datadir, fcenter1, fcenter2, fspan, SWT_info, avgnum = 5): 
+    def scattering_mtx_pair(self, datadir, fcenter1, fcenter2, fspan, SWT_info, avgnum = 5, MX = ''): 
         [SWT, name1in, name2in, name1out, name2out] = SWT_info
         
         #S11
@@ -161,7 +170,7 @@ class Hat_P9374A(Keysight_P9374A):
         
         #S12
         SWT.set_mode_dict(name2in)
-        SWT.set_mode_dict(name1out+'_MX')
+        SWT.set_mode_dict(name1out+MX)
         #needs a mixer set to the gain frequency
         self.fcenter(fcenter2)
         self.fspan(fspan)
@@ -170,10 +179,35 @@ class Hat_P9374A(Keysight_P9374A):
         
         #S21
         SWT.set_mode_dict(name1in)
-        SWT.set_mode_dict(name2out+'_MX')
+        SWT.set_mode_dict(name2out+MX)
         #needs a mixer set to the gain frequency
         self.fcenter(fcenter1)
         self.fspan(fspan)
         
         self.savetrace(savedir = datadir, name = 'S21', avgnum = avgnum)
+    def print_setup(self): 
+        return self.fstart(), self.fstop()
     
+    def fit_gain(self, gen, avgnum = 10,plot = False): 
+        from scipy.optimize import curve_fit
+        gen.output_status(0)
+        self.power(self.power()+10)
+        self.renormalize(avgnum*2)
+        self.power(self.power()-10)
+        gen.output_status(1)
+        gain_func = lambda x, G, f, bw: G/(1+((x-f)/bw)**2)
+        [mag, phase] = self.average(avgnum)
+        freqs = self.getSweepData()
+        popt, pcov = curve_fit(gain_func, freqs, 10**(mag/10), p0 = [100, np.average(freqs), np.average(freqs)/10])
+        G, f, bw = popt
+        if plot: 
+            import matplotlib.pyplot as plt
+            fig, ax = plt.subplots()
+            ax.plot((freqs-f)/1e6, mag, label = 'data')
+            ax.plot((freqs-f)/1e6, 10*np.log10(gain_func(freqs, *popt)), label = 'Lorentzian Fit')
+            ax.set_xlabel("Frequency Detuning (MHz)")
+            ax.set_ylabel("Gain (dB)")
+            ax.legend()
+            ax.grid(b = 1)
+        self.set_to_manual()
+        return 10*np.log10(G), f/1e9, np.abs(2*bw/1e6), popt, gain_func

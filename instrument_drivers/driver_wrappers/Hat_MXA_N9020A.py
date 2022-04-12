@@ -80,3 +80,7 @@ class Hat_MXA_N9020A(Keysight_MXA_N9020A):
         self.fspan(fspan)
         
         self.savetrace(savedir = datadir, name = 'S21', avgnum = avgnum)
+    def mirror(self, VNA): 
+        self.fstart(VNA.fstart())
+        self.fstop(VNA.fstop())
+        

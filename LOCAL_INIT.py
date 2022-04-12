@@ -45,9 +45,9 @@ from qcodes.instrument_drivers.AlazarTech.ATS9870 import AlazarTech_ATS9870
 CXA = Hat_MXA_N9020A("CXA", address = 'TCPIP0::169.254.110.116::INSTR')
 #%%
 # VNA = Agilent_ENA_5071C("VNA", address = "TCPIP0::169.254.169.64::inst0::INSTR", timeout = 30)
-# pVNA = Hat_P9374A("pVNA", address = "TCPIP0::Hatlab_3-PC::hislip0,4880::INSTR", timeout = 3)
-# pVNA = Hat_P9374A("pVNA", address = "TCPIP0::DESKTOP-8EN5L8U::hislip0,4880::INSTR", timeout = 3)
 pVNA = Hat_P9374A("pVNA", address = "TCPIP0::Hatlab_3-PC::hislip0,4880::INSTR", timeout = 3)
+# pVNA = Hat_P9374A("pVNA", address = "TCPIP0::DESKTOP-8EN5L8U::hislip0,4880::INSTR", timeout = 3)
+# pVNA = Hat_P9374A("pVNA", address = "TCPIP0::Hatlab_3-PC::hislip2,4880::INSTR", timeout = 3)
 #for little VNA: TCPIP0::Hatlab_3-PC::hislip0,4880::INSTR\
 #For big VNA: (RIP): TCPIP0::169.254.152.68::inst0::INSTR
 #For big VNA2: TCPIP0::169.254.169.64::inst0::INSTR
@@ -74,7 +74,9 @@ swt_modes = {
     "A":["xxx100xx", "xxxxxxxx"],
     "A_MX":["xxx111xx", "xxxxxxxx"],
     "2":["xx0xxxxx", "xxxxxxxx"],
-    "6":["xx1xxxxx", "xxxxxxxx"]
+    "6":["xx1xxxxx", "xxxxxxxx"],
+    "B":["x0xxxxxx", "xxxxxxxx"],
+    "C":["x1xxxxxx", "xxxxxxxx"]
     }
 
 SWT = SWTCTRL(SWT1,SWT2,swt_modes)
@@ -85,8 +87,8 @@ Modes.load_from_folder(globals(),path = "Z:\Data\SH6F1_1141\modes")
 dll_path = r'C:\Users\Hatlab_3\Desktop\RK_Scripts\New_Drivers\HatDrivers\DLL\sc5511a.dll'
 # 
 SC9 = SignalCore_SC5511A('SigCore9', serial_number = '1000190E', debug = True)
-
-# from qcodes.instrument_drivers.tektronix.AWG5014 import Tektronix_AWG5014
+#%%
+#from qcodes.instrument_drivers.tektronix.AWG5014 import Tektronix_AWG5014
 SC4 = SignalCore_SC5511A('SigCore4', serial_number = '10001851', debug = True)
 #%%
 SC5 = SignalCore_SC5511A('SigCore5', serial_number = '10001852', debug = True)

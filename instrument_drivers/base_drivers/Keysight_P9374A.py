@@ -114,12 +114,18 @@ class Keysight_P9374A(VisaInstrument):
                            get_parser = int, 
                            vals = vals.Ints(0,1)
                            )
-        self.add_parameter('average_trigger', 
-                           get_cmd = ':TRIG:AVER?',
-                           set_cmd = ':TRIG:AVER {}', 
-                           get_parser = int, 
-                           vals = vals.Ints(0,1)
+        
+        self.add_parameter('average_type', 
+                           set_cmd = ':SENS1:AVER:MODE {}', 
+                           get_cmd = ':SENS1:AVER:MODE?' 
+                           # vals=vals.Enum("POIN", "SWE")
                            )
+        # self.add_parameter('average_trigger', 
+        #                    get_cmd = ':TRIG:AVER?',
+        #                    set_cmd = ':TRIG:AVER {}', 
+        #                    get_parser = int, 
+        #                    vals = vals.Ints(0,1)
+        #                    )
         self.add_parameter('avgnum', 
                            get_cmd = ':SENS1:AVER:COUN?', 
                            set_cmd = ':SENS1:AVER:COUN {}', 
@@ -142,7 +148,7 @@ class Keysight_P9374A(VisaInstrument):
         self.add_parameter('trigger_source', 
                             get_cmd = 'TRIG:SOUR?', 
                             set_cmd = 'TRIG:SOUR {}', 
-                            vals = vals.Enum('INT', 'EXT', 'MAN', 'BUS')
+                            vals = vals.Enum('IMM', 'EXT', 'MAN', 'BUS')
                             )
         self.add_parameter('trform', 
                             get_cmd = ':CALC1:FORM?', 
@@ -213,10 +219,8 @@ class Keysight_P9374A(VisaInstrument):
             mags (dB) phases (rad)
         '''
         logging.info(__name__ + ' : get amp, phase stim data')
-        prev_trform = self.trform()
         self.trform('POL')
         strdata= str(self.ask(':CALC1:DATA? FDATA'))
-        self.trform(prev_trform)
         data= np.array(strdata.split(',')).astype(float)
         
         if len(data)%2 == 0:
