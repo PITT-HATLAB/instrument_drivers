@@ -1,11 +1,17 @@
-import spidev
-import time
-from gpiozero import DigitalOutputDevice
-from typing import List
 import logging
 import random
+import socket
+import sys
+import time
+from typing import List
 
-class Yroko2:
+import spidev
+from gpiozero import DigitalOutputDevice
+
+# TODO: need to rewrite RAMPing so doesn't use unnecessary reads and writes
+
+
+class Yroko2Board:
     """Instantiating this class establishes a connection to Yroko2.0 boards
 
     Example with context manager:
@@ -25,14 +31,14 @@ class Yroko2:
     def __init__(self):
         # Serial Clock Input. Data is clocked into the input shift register on the falling edge of the serial clock input.
         # Data can be transferred at rates of up to 35 MHz
-        #self.sclk = 11  # (gpio 11 -> pin 23) SPI0_SCLCK
+        # self.sclk = 11  # (gpio 11 -> pin 23) SPI0_SCLCK
 
         # Serial Data Input. This device has a 24-bit input shift register.
         # Data is clocked into the register on the falling edge of the serial clock input.
-        #self.sdin = 10  # (gpio 10 -> pin 19) SPI0_MOSI
+        # self.sdin = 10  # (gpio 10 -> pin 19) SPI0_MOSI
 
         # Serial Data Output. Data is clocked out on the rising edge of the serial clock input
-        #self.sdout = -1
+        # self.sdout = -1
 
         # Level Triggered Control Input (Active Low). This is the frame synchronization signal for the input data.
         # When SYNC goes low, it enables the input shift register, and data is then transferred in on the falling edges
@@ -42,10 +48,11 @@ class Yroko2:
         # spidev has only 2 chip selects, but online suggestions indicate using arbitrary set of GPIO pins is perfectly fine
         # Make sure using GPIO pins not already reserved by spidev
         # nsync = 8 #(gpio 8  -> pin 24) SPI0_CEO_N
-        self.channel_dict = {0: "GPIO12", 1: "GPIO6", 2:"GPIO16"}
+        self.channel_dict = {0: "GPIO12", 1: "GPIO6", 2: "GPIO16"}
 
         self.nsync = {
-            channel: DigitalOutputDevice(gpio_pin) for channel, gpio_pin in self.channel_dict.items()
+            channel: DigitalOutputDevice(gpio_pin)
+            for channel, gpio_pin in self.channel_dict.items()
         }
 
         # Additional pins that can be moved from hardwired ground to board for additional hardware functionality
@@ -56,13 +63,13 @@ class Yroko2:
 
     def __enter__(self):
         # open spi on 0,0 to use SPI0 MISO/MOSI pins
-        self.spi = spidev.SpiDev(0,0)
-        #35 MHz is max per datasheet but much higher than this value seems to break
+        self.spi = spidev.SpiDev(0, 0)
+        # 35 MHz is max per datasheet but much higher than this value seems to break
         self.spi.max_speed_hz = 27777777
         self.spi.bits_per_word = 8
-        #SPI mode 3 for clock edges configuration
+        # SPI mode 3 for clock edges configuration
         self.spi.mode = 0b11
-        #use our own GPIO pins for sync, lets have more than standard 2
+        # use our own GPIO pins for sync, lets have more than standard 2
         self.no_cs = True
 
         # power-on sequence
@@ -83,7 +90,7 @@ class Yroko2:
         if not channel in self.channel_dict:
             raise ValueError("Channel does not exist")
 
-        #logging.debug(f"writing to SPI byte array {[bin(value)[2:].zfill(8) for value in bytearray]}")
+        # logging.debug(f"writing to SPI byte array {[bin(value)[2:].zfill(8) for value in bytearray]}")
         self.nsync[channel].off()
         self.spi.xfer2(bytearray)
         self.nsync[channel].on()
@@ -113,7 +120,7 @@ class Yroko2:
         # solve for d in transfer function equation
         d = ((voltage_value - self.vrefn) * 2**18) / (self.vrefp - self.vrefn)
 
-        #float to int, may be lossy as determined by DAC resolution
+        # float to int, may be lossy as determined by DAC resolution
         d = int(d)
 
         # convert to 24-bits of binary (18 bits with 6 leading 0s)
@@ -133,7 +140,7 @@ class Yroko2:
         return d
 
     def _bytesToVoltage(self, d: str):
-        return (self.vrefp - self.vrefn) * int(d,2)/(2**18) + self.vrefn
+        return (self.vrefp - self.vrefn) * int(d, 2) / (2**18) + self.vrefn
 
     def set_voltage(self, channel: int, voltage_value: int):
         """writes to DAC register voltage_value as a byte array"""
@@ -143,29 +150,35 @@ class Yroko2:
         configure_write_bytes = voltage_bytes
         dac_address = 0x10
         configure_write_bytes[0] += dac_address
-        logging.debug(f"MOSI write to channel {channel} DAC: {[hex(value) for value in configure_write_bytes]}")
+        logging.debug(
+            f"MOSI write to channel {channel} DAC: {[hex(value) for value in configure_write_bytes]}"
+        )
         self._write_inputShiftRegister(channel, configure_write_bytes)
 
-        #log the actual voltage value put in DAC
-        logging.info(f"Set voltage to {self._bytesToVoltage(self._getDACValue(channel))}")
+        # log the actual voltage value put in DAC
+        logging.info(
+            f"Set voltage to {self._bytesToVoltage(self._getDACValue(channel))}"
+        )
 
     def getVoltageRange(self):
         """Returns operating range of output voltage as determined by VREP and VREFN supplies.
         If a voltage is set out of this range, it is capped to the max or min value"""
         return [self.vrefn, self.vrefp]
 
-    def ramp(self, channel: int, start_voltage: int, stop_voltage: int, time_step: int = None):
+    def ramp(
+        self, channel: int, start_voltage: int, stop_voltage: int, time_step: int = None
+    ):
         self.set_voltage(channel, start_voltage)
         if stop_voltage > start_voltage:
             step = self.increment_unit
         else:
             step = self.decrement_unit
 
-        #call this function to match bit resolution
+        # call this function to match bit resolution
         stop_voltage = self._voltageToBytes(stop_voltage)
         stop_string = [bin(v)[2:].zfill(8) for v in stop_voltage]
         stop_string = "".join([v for v in stop_string])[4:-2]
-        while (self._getDACValue(channel) != stop_string):
+        while self._getDACValue(channel) != stop_string:
             step(channel)
 
     def increment_unit(self, channel: int):
@@ -196,13 +209,15 @@ class Yroko2:
         The clocks must be applied while SYNC is low. When SYNC is returned high, the SDO pin is placed in tristate"""
         configure_read_bytes = [0x90, 0x00, 0x00]
         self._write_inputShiftRegister(channel, configure_read_bytes)
-        
+
         # interpret the data from the MISO pin
         self.nsync[channel].off()
         register_contents = self.spi.readbytes(3)
         self.nsync[channel].on()
 
-        logging.debug(f"MISO read from channel {channel} DAC contents: {[hex(value) for value in register_contents]}")
+        logging.debug(
+            f"MISO read from channel {channel} DAC contents: {[hex(value) for value in register_contents]}"
+        )
         return register_contents
 
     def _read_control(self, channel: int):
@@ -214,19 +229,47 @@ class Yroko2:
         register_contents = self.spi.readbytes(3)
         self.nsync[channel].on()
 
-        #logging.debug(f"MISO read channel {channel} control register contents: {[bin(value)[2:].zfill(8) for value in register_contents]}")
-        logging.debug(f"MISO read from channel {channel} control contents: {[hex(value) for value in register_contents]}")
+        # logging.debug(f"MISO read channel {channel} control register contents: {[bin(value)[2:].zfill(8) for value in register_contents]}")
+        logging.debug(
+            f"MISO read from channel {channel} control contents: {[hex(value) for value in register_contents]}"
+        )
         return register_contents
 
+
 if __name__ == "__main__":
-    yroko = Yroko2()
-    #logging.basicConfig(level=logging.DEBUG)
+    """in main loop, recieve TCP messages from instrument driver"""
+    yroko = Yroko2Board()
+    # logging.basicConfig(level=logging.DEBUG)
     logging.basicConfig(level=logging.INFO)
 
+    # set up socket
+    BUFFER_SIZE = 64  # idk
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server_address = (socket.gethostname(), 8888)
+    # bind socket to this port
+    sock.bind(server_address)
+    # Listen for incoming connections
+    sock.listen(1)
+
+    # context manager handles SPI communication
     with yroko as yk:
-        #ramp up
-        yk.ramp(channel=1, start_voltage=-.5, stop_voltage=0)
-        #ramp down
-        yk.ramp(channel=1, start_voltage=1, stop_voltage=-1)
-    
-    print("done")
+        while True:
+            # wait for an incoming connection
+            connection, client_address = sock.accept()
+
+            try:
+                # read_request()
+                data = connection.recv(BUFFER_SIZE)
+                # write_response()
+                connection.sendall()
+            finally:
+                # close_connection()
+                sock.close()
+
+            # parse TCP command and execute the given functions
+
+    # # ramp up
+    # yk.ramp(channel=1, start_voltage=-0.5, stop_voltage=0)
+    # # ramp down
+    # yk.ramp(channel=1, start_voltage=1, stop_voltage=-1)
+    # print("done")
