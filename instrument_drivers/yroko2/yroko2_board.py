@@ -4,11 +4,15 @@ import socket
 import sys
 import time
 from typing import List
+import struct
 
 import spidev
 from gpiozero import DigitalOutputDevice
 
 # TODO: need to rewrite RAMPing so doesn't use unnecessary reads and writes
+# TODO: debug reset by peer error
+
+"""@author Evan McKinney"""
 
 
 class Yroko2Board:
@@ -106,7 +110,7 @@ class Yroko2Board:
         configuration_string = [0x20, 0x00, 0x12]
         self._write_inputShiftRegister(channel, configuration_string)
 
-    def _voltageToBytes(self, voltage_value: int):
+    def _voltageToBytes(self, voltage_value: float):
         """:math:`V_{OUT} = \frac{(V_{REFP} - V_{REFN}) * D}{2^{18}} + V_{REFN}`"""
         # cap out of bounds values
         if voltage_value >= self.vrefp:
@@ -142,7 +146,7 @@ class Yroko2Board:
     def _bytesToVoltage(self, d: str):
         return (self.vrefp - self.vrefn) * int(d, 2) / (2**18) + self.vrefn
 
-    def set_voltage(self, channel: int, voltage_value: int):
+    def set_voltage(self, channel: int, voltage_value: float):
         """writes to DAC register voltage_value as a byte array"""
         voltage_bytes = self._voltageToBytes(voltage_value)
 
@@ -166,7 +170,11 @@ class Yroko2Board:
         return [self.vrefn, self.vrefp]
 
     def ramp(
-        self, channel: int, start_voltage: int, stop_voltage: int, time_step: int = None
+        self,
+        channel: int,
+        start_voltage: float,
+        stop_voltage: float,
+        time_step: int = None,
     ):
         self.set_voltage(channel, start_voltage)
         if stop_voltage > start_voltage:
@@ -245,7 +253,7 @@ if __name__ == "__main__":
     # set up socket
     BUFFER_SIZE = 64  # idk
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server_address = (socket.gethostname(), 8888)
+    server_address = ("", 8888)  # socket.gethostname()
     # bind socket to this port
     sock.bind(server_address)
     # Listen for incoming connections
@@ -253,21 +261,34 @@ if __name__ == "__main__":
 
     # context manager handles SPI communication
     with yroko as yk:
-        while True:
-            # wait for an incoming connection
-            connection, client_address = sock.accept()
 
-            try:
+        # wait for an incoming connection
+        connection, client_address = sock.accept()
+
+        try:
+            while True:
                 # read_request()
                 data = connection.recv(BUFFER_SIZE)
 
-                data_args = data.split(",")
+                # ignore empty init messages
+                if len(data) == 0:
+                    continue
+
+                data_args = str(data, "utf-8").split(",")
+                channel = int(data_args[1])
+
                 if data_args[0] == "RAMP":
-                    yk.ramp(data_args[1], data_args[2], data_args[3])  # , data_args[4])
-                    message = "RAMP_FINISHED"
+                    print("channel", channel)
+                    print(float(data_args[1]), float(data_args[3]))
+                    yk.ramp(
+                        channel, float(data_args[2]), float(data_args[3])
+                    )  # , data_args[4])
+                    message = "RAMP_FINISHED".encode()
+
                 elif data_args[0] == "GET_DAC":
-                    voltage = yk._bytesToVoltage(yk._getDACValue(data_args[1]))
-                    message = f"{voltage}"
+                    voltage = yk._bytesToVoltage(yk._getDACValue(channel))
+                    message = bytearray(struct.pack("f", voltage))
+
                 else:
                     # fail, but won't be reachable
                     pass
@@ -275,11 +296,9 @@ if __name__ == "__main__":
                 # write_response()
                 connection.sendall(message)
 
-            finally:
-                # close_connection()
-                sock.close()
-
-            # parse TCP command and execute the given functions
+        finally:
+            # close_connection()
+            sock.close()
 
     # # ramp up
     # yk.ramp(channel=1, start_voltage=-0.5, stop_voltage=0)
