@@ -260,8 +260,21 @@ if __name__ == "__main__":
             try:
                 # read_request()
                 data = connection.recv(BUFFER_SIZE)
+
+                data_args = data.split(",")
+                if data_args[0] == "RAMP":
+                    yk.ramp(data_args[1], data_args[2], data_args[3])  # , data_args[4])
+                    message = "RAMP_FINISHED"
+                elif data_args[0] == "GET_DAC":
+                    voltage = yk._bytesToVoltage(yk._getDACValue(data_args[1]))
+                    message = f"{voltage}"
+                else:
+                    # fail, but won't be reachable
+                    pass
+
                 # write_response()
-                connection.sendall()
+                connection.sendall(message)
+
             finally:
                 # close_connection()
                 sock.close()
