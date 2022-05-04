@@ -158,12 +158,12 @@ class YrokoInstrument(Instrument):
         #     instrument=self,
         # )
 
-        # set all channels to true zero
-        # TODO:
-
         self.TCP_Connect()
 
-        # :)
+        # set all channels to true zero
+        for channel_ref in self.submodules.values():
+            channel_ref.set_current(channel_ref.true_zero)
+
         self.connect_message()
 
     def TCP_Connect(self):
@@ -187,6 +187,10 @@ class YrokoInstrument(Instrument):
             self.sock.connect(server_address)
         except socket.error:
             print("Caught exception socket.error, failed to connect")
+            raise Exception(
+                "TCP connect failed - check raspberry pi is running yroko_board.py"
+            )
+            return 0
 
         print("Connection successful")
         # now get initial current:
@@ -202,26 +206,32 @@ class YrokoInstrument(Instrument):
         # )
 
         print("Initialization Process Complete\n")
+        return 1
 
     def TCP_Exchange(self, message, wait=True):
         """framework for sending a message and waiting for a response"""
         # TODO: rewrite, should have a timeout?
-        # print("Sending: " + message)
+        print("Sending: " + message)
         self.sock.sendall(bytes(message, "utf-8"))
         # the system will wait until it receives something. So the server must send something for the client to be able to respond
         if wait:
             feedback = self.sock.recv(64)
         else:
             feedback = b""
-        # print("feedback from server: ", feedback)
+        print("raw feedback from server: ", feedback)
         return feedback  # don't str(feedback), let caller handle formatting
 
-    def shutdown(self):
+    def close(self):
         # as a final command, always 0 out current:
-        self.change_current(0)
-        self.sock.close()
-        print(
-            "Current zeroed, socket closed, shutdown complete. \nUnplugging channel "
-            + str(self.channel + 1)
-            + " is safe now"
-        )
+        try:
+            print("begin zeroing all channels")
+            for channel_ref in self.submodules.values():
+                channel_ref.set_current(0)
+        finally:
+            self.sock.close()
+            print(
+                "shutdown complete. \nUnplugging channel "
+                + str(self.channel + 1)
+                + " is safe now"
+            )
+            super.close()

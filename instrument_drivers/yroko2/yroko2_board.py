@@ -52,7 +52,7 @@ class Yroko2Board:
         # spidev has only 2 chip selects, but online suggestions indicate using arbitrary set of GPIO pins is perfectly fine
         # Make sure using GPIO pins not already reserved by spidev
         # nsync = 8 #(gpio 8  -> pin 24) SPI0_CEO_N
-        self.channel_dict = {0: "GPIO12", 1: "GPIO6", 2: "GPIO16"}
+        self.channel_dict = {0: "GPIO6", 1: "GPIO12"}  # , 2: "GPIO16"}
 
         self.nsync = {
             channel: DigitalOutputDevice(gpio_pin)
@@ -69,7 +69,8 @@ class Yroko2Board:
         # open spi on 0,0 to use SPI0 MISO/MOSI pins
         self.spi = spidev.SpiDev(0, 0)
         # 35 MHz is max per datasheet but much higher than this value seems to break
-        self.spi.max_speed_hz = 27777777
+        # self.spi.max_speed_hz = 27777777
+        self.spi.max_speed_hz = 20000
         self.spi.bits_per_word = 8
         # SPI mode 3 for clock edges configuration
         self.spi.mode = 0b11
@@ -250,6 +251,12 @@ if __name__ == "__main__":
     # logging.basicConfig(level=logging.DEBUG)
     logging.basicConfig(level=logging.INFO)
 
+    # #debug case
+    # if True:
+    #     with yroko as yk:
+    #         yk.set_voltage(0, 2)
+    #     quit()
+
     # set up socket
     BUFFER_SIZE = 64  # idk
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -262,43 +269,52 @@ if __name__ == "__main__":
     # context manager handles SPI communication
     with yroko as yk:
 
-        # wait for an incoming connection
-        connection, client_address = sock.accept()
+        # iterate as instruments connect and disconnect
+        while True:
+            # wrap everything in try, so can close in finally case
+            try:
+                # wait for an incoming connection
+                logging.info("Listening...")
+                connection, client_address = sock.accept()
+                logging.info(f"Connection established: {client_address}")
 
-        try:
-            while True:
-                # read_request()
-                data = connection.recv(BUFFER_SIZE)
+                # iterate over every tcp exchange
+                while True:
+                    # read_request()
+                    data = connection.recv(BUFFER_SIZE)
 
-                # ignore empty init messages
-                if len(data) == 0:
-                    continue
+                    # ignore empty init messages
+                    if len(data) == 0:
+                        continue
 
-                data_args = str(data, "utf-8").split(",")
-                channel = int(data_args[1])
+                    logging.info(f"TCP Recieved: {data}")
 
-                if data_args[0] == "RAMP":
-                    print("channel", channel)
-                    print(float(data_args[1]), float(data_args[3]))
-                    yk.ramp(
-                        channel, float(data_args[2]), float(data_args[3])
-                    )  # , data_args[4])
-                    message = "RAMP_FINISHED".encode()
+                    data_args = str(data, "utf-8").split(",")
+                    channel = int(data_args[1])
 
-                elif data_args[0] == "GET_DAC":
-                    voltage = yk._bytesToVoltage(yk._getDACValue(channel))
-                    message = bytearray(struct.pack("f", voltage))
+                    if data_args[0] == "RAMP":
+                        print("channel", channel)
+                        print(float(data_args[1]), float(data_args[3]))
+                        yk.ramp(
+                            channel, float(data_args[2]), float(data_args[3])
+                        )  # , data_args[4])
+                        message = "RAMP_FINISHED".encode()
 
-                else:
-                    # fail, but won't be reachable
-                    pass
+                    elif data_args[0] == "GET_DAC":
+                        voltage = yk._bytesToVoltage(yk._getDACValue(channel))
+                        message = bytearray(struct.pack("f", voltage))
 
-                # write_response()
-                connection.sendall(message)
+                    else:
+                        # fail, but won't be reachable
+                        pass
 
-        finally:
-            # close_connection()
-            sock.close()
+                    # write_response()
+                    connection.sendall(message)
+
+            finally:
+                # close_connection()
+                logging.info("Close TCP")
+                connection.close()
 
     # # ramp up
     # yk.ramp(channel=1, start_voltage=-0.5, stop_voltage=0)
