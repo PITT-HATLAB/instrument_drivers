@@ -1,33 +1,21 @@
 import logging
 import random
 import socket
+import struct
 import sys
 import time
 from typing import List
-import struct
 
 import spidev
 from gpiozero import DigitalOutputDevice
 
 # TODO: need to rewrite RAMPing so doesn't use unnecessary reads and writes
-# TODO: debug reset by peer error
 
 """@author Evan McKinney"""
 
 
 class Yroko2Board:
     """Instantiating this class establishes a connection to Yroko2.0 boards
-
-    Example with context manager:
-    >>> yroko = Yroko2()
-    >>> logging.basicConfig(level=logging.INFO)
-    >>> with yroko as yk:
-    >>>     #ramp up
-    >>>     yk.ramp(channel=1, start_voltage=-.5, stop_voltage=0)
-    >>>     #ramp down
-    >>>     yk.ramp(channel=1, start_voltage=1, stop_voltage=-1)
-    >>> print("done")
-
     Datasheet reference:
     https://www.analog.com/media/en/technical-documentation/data-sheets/ad5780.pdf
     """
@@ -44,16 +32,16 @@ class Yroko2Board:
         # Serial Data Output. Data is clocked out on the rising edge of the serial clock input
         # self.sdout = -1
 
+        # Simple set up is to include for each eval-board its own GPIO pin to act as its enable bit
+        # Make sure using GPIO pins not already reserved by spidev
+        # (gpio 8  -> pin 24) SPI0_CEO_N
+        # XXX: when building new yrokos, either make sure this is always the same or supply this from the qcode InstrumentChannel
+        self.channel_dict = {0: "GPIO6", 1: "GPIO12"}  # , 2: "GPIO16"}
+
         # Level Triggered Control Input (Active Low). This is the frame synchronization signal for the input data.
         # When SYNC goes low, it enables the input shift register, and data is then transferred in on the falling edges
         # of the following clocks. The DAC is updated on the rising edge of SYNC.
-
-        # Simple set up is to include for each eval-board its own GPIO pin to act as its enable bit
-        # spidev has only 2 chip selects, but online suggestions indicate using arbitrary set of GPIO pins is perfectly fine
-        # Make sure using GPIO pins not already reserved by spidev
-        # nsync = 8 #(gpio 8  -> pin 24) SPI0_CEO_N
-        self.channel_dict = {0: "GPIO6", 1: "GPIO12"}  # , 2: "GPIO16"}
-
+        # nsync = 8
         self.nsync = {
             channel: DigitalOutputDevice(gpio_pin)
             for channel, gpio_pin in self.channel_dict.items()
@@ -70,23 +58,36 @@ class Yroko2Board:
         self.spi = spidev.SpiDev(0, 0)
         # 35 MHz is max per datasheet but much higher than this value seems to break
         self.spi.max_speed_hz = 27777777
-        # self.spi.max_speed_hz = 20000
+
         self.spi.bits_per_word = 8
         # SPI mode 3 for clock edges configuration
         self.spi.mode = 0b11
-        # use our own GPIO pins for sync, lets have more than standard 2
+        # using our own GPIO pins for sync
         self.no_cs = True
 
         # power-on sequence
-        logging.debug("Start power on sequence")
+        logging.DEBUG("Powering on...")
         for channel in self.channel_dict:
             self._configure_control(channel)
-
+        logging.DEBUG("Ready")
         return self
 
     def __exit__(self, exception_type, exception_value, traceback):
         # Exception handling here
         self.spi.close()
+
+    def _configure_control(self, channel: int):
+        # TODO: we want the DAC to boot to 0V instead of -10V
+        """The DAC is removed from tristate by clearing the DACTRI bit,
+        set BIN/2sC to 1 to treat D as nonsigned binary number (default is 2s complement),
+        and the output clamp is removed by clearing the OPGND bit.
+        """
+
+        # logging.DEBUG(f"read channel {channel} control register before doing update")
+        # self._read_control(channel)
+
+        configuration_string = [0x20, 0x00, 0x12]
+        self._write_inputShiftRegister(channel, configuration_string)
 
     def _write_inputShiftRegister(self, channel: int, bytearray: List[int]):
         """The input shift register is 24 bits wide. Data is loaded into the device MSB first
@@ -95,25 +96,14 @@ class Yroko2Board:
         if not channel in self.channel_dict:
             raise ValueError("Channel does not exist")
 
-        # logging.debug(f"writing to SPI byte array {[bin(value)[2:].zfill(8) for value in bytearray]}")
+        # logging.DEBUG(f"writing to SPI byte array {[bin(value)[2:].zfill(8) for value in bytearray]}")
         self.nsync[channel].off()
         self.spi.xfer2(bytearray)
         self.nsync[channel].on()
 
-    def _configure_control(self, channel: int):
-        """The DAC is removed from tristate by clearing the DACTRI bit,
-        set BIN/2sC to 1 to treat D as nonsigned binary number (default is 2s complement),
-        and the output clamp is removed by clearing the OPGND bit.
-        """
-        logging.debug(f"read channel {channel} control register before doing update")
-        self._read_control(channel)
-
-        configuration_string = [0x20, 0x00, 0x12]
-        self._write_inputShiftRegister(channel, configuration_string)
-
     def _voltageToBytes(self, voltage_value: float):
-        """:math:`V_{OUT} = \frac{(V_{REFP} - V_{REFN}) * D}{2^{18}} + V_{REFN}`"""
-        # cap out of bounds values
+        """$V_{OUT} = \frac{(V_{REFP} - V_{REFN}) * D}{2^{18}} + V_{REFN}$"""
+        # cap out-of-bounds values
         if voltage_value >= self.vrefp:
             # cap upper bound 1 bit less than vrefp, so fits in 18 bits
             voltage_value = (
@@ -138,7 +128,7 @@ class Yroko2Board:
         return list(voltage_bytes)
 
     def _getDACValue(self, channel: int):
-        """Reads and returns the D bitstring in DAC register"""
+        """Reads and returns the data bitstring in DAC register"""
         dac_register_contents = self.read_dac(channel)
         d = [bin(v)[2:].zfill(8) for v in dac_register_contents]
         d = "".join([v for v in d])[4:-2]
@@ -149,26 +139,28 @@ class Yroko2Board:
 
     def set_voltage(self, channel: int, voltage_value: float):
         """writes to DAC register voltage_value as a byte array"""
+
+        # construct byte list
         voltage_bytes = self._voltageToBytes(voltage_value)
 
         # write to DAC register
         configure_write_bytes = voltage_bytes
         dac_address = 0x10
         configure_write_bytes[0] += dac_address
-        logging.debug(
+        logging.DEBUG(
             f"MOSI write to channel {channel} DAC: {[hex(value) for value in configure_write_bytes]}"
         )
         self._write_inputShiftRegister(channel, configure_write_bytes)
 
-        # log the actual voltage value put in DAC
-        logging.info(
-            f"Set channel {channel} voltage to {self._bytesToVoltage(self._getDACValue(channel))}"
-        )
+        # log the actual voltage value put in DAC, comment out since qcode Instrument will do this
+        # logging.info(
+        #     f"Set channel {channel} voltage to {self._bytesToVoltage(self._getDACValue(channel))}"
+        # )
 
-    def getVoltageRange(self):
-        """Returns operating range of output voltage as determined by VREP and VREFN supplies.
-        If a voltage is set out of this range, it is capped to the max or min value"""
-        return [self.vrefn, self.vrefp]
+    # def getVoltageRange(self):
+    #     """Returns operating range of output voltage as determined by VREP and VREFN supplies.
+    #     If a voltage is set out of this range, it is capped to the max or min value"""
+    #     return [self.vrefn, self.vrefp]
 
     def ramp(
         self,
@@ -178,39 +170,43 @@ class Yroko2Board:
         time_step: int = None,
     ):
         self.set_voltage(channel, start_voltage)
+        # decide if we are going up or down
         if stop_voltage > start_voltage:
             step = self.increment_unit
         else:
             step = self.decrement_unit
 
-        # call this function to match bit resolution
+        # format stop_voltage so we can compare it directly against latest bitstring
         stop_voltage = self._voltageToBytes(stop_voltage)
         stop_string = [bin(v)[2:].zfill(8) for v in stop_voltage]
         stop_string = "".join([v for v in stop_string])[4:-2]
-        while self._getDACValue(channel) != stop_string:
-            step(channel)
 
-    def increment_unit(self, channel: int):
+        # keep stepping....
+        # use last_value to remove need for duplicate calls to getDACValue
+        while (last_value := self._getDACValue(channel)) != stop_string:
+            step(channel, last_value)
+
+    def increment_unit(self, channel: int, last_value):
         """Increase voltage by single bit"""
-        register_contents = self._getDACValue(channel)
+        register_contents = last_value
         register_contents = int(register_contents, 2) + 1
         register_contents = bin(register_contents)[2:].zfill(18)
         new_voltage = self._bytesToVoltage(str(register_contents))
         self.set_voltage(channel, new_voltage)
 
-    def decrement_unit(self, channel: int):
+    def decrement_unit(self, channel: int, last_value):
         """decrement voltage by single bit"""
-        register_contents = self._getDACValue(channel)
+        register_contents = last_value
         register_contents = int(register_contents, 2) - 1
         register_contents = bin(register_contents)[2:].zfill(18)
         new_voltage = self._bytesToVoltage(str(register_contents))
         self.set_voltage(channel, new_voltage)
 
-    def blinker(self, channel: int, repeat: int):
-        for r in range(repeat):
-            self.set_voltage(channel, self.getVoltageRange()[1])
-            time.sleep(3)
-            self.set_voltage(channel, 0)
+    # def blinker(self, channel: int, repeat: int):
+    #     for r in range(repeat):
+    #         self.set_voltage(channel, self.getVoltageRange()[1])
+    #         time.sleep(3)
+    #         self.set_voltage(channel, 0)
 
     def read_dac(self, channel: int):
         """The contents of all the on-chip registers can be read back via the SDO pin. Table 7 outlines how the registers are decoded.
@@ -224,7 +220,7 @@ class Yroko2Board:
         register_contents = self.spi.readbytes(3)
         self.nsync[channel].on()
 
-        logging.debug(
+        logging.DEBUG(
             f"MISO read from channel {channel} DAC contents: {[hex(value) for value in register_contents]}"
         )
         return register_contents
@@ -239,13 +235,14 @@ class Yroko2Board:
         self.nsync[channel].on()
 
         # logging.debug(f"MISO read channel {channel} control register contents: {[bin(value)[2:].zfill(8) for value in register_contents]}")
-        logging.debug(
+        logging.DEBUG(
             f"MISO read from channel {channel} control contents: {[hex(value) for value in register_contents]}"
         )
         return register_contents
 
 
 if __name__ == "__main__":
+    # TODO: refactor put some of the TCP stuff into functions
     """in main loop, recieve TCP messages from instrument driver"""
     yroko = Yroko2Board()
     # logging.basicConfig(level=logging.DEBUG)
@@ -313,17 +310,21 @@ if __name__ == "__main__":
                     logging.info(f"TCP sending: {message}")
                     acknowledgment = False
                     attempts = 0
-                    while not acknowledgment and attempts < 3:
+                    while not acknowledgment and attempts < 1:
                         try:
                             sock.settimeout(3)
-                            connection.sendall(message)
-                            connection.recv(1)
+                            connection.sendall(bytes(message, "utf-8"))
+
+                            # wait for ack
+                            connection.sock.recv(1)
                             acknowledgment = True
                         except socket.timeout:
                             attempts += 1
                             continue
                     if not acknowledgment:
-                        raise Exception("TCP exchange unable to recieve acknowledgment")
+                        raise Exception(
+                            "TCP exchange unable to receive acknowledgment, raspPi and Insturment got disconnected without them realizing..."
+                        )
 
             except ConnectionResetError:
                 # driver forced closed, start listening again

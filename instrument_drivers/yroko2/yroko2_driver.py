@@ -63,6 +63,7 @@ class _YrokoChannel(InstrumentChannel):
 
     def _set_current(self, new_current, ramp_rate=None) -> float:
         """SET method for channel's current
+        
         Args:
             new_current: current value in mA
             ramp_rate: not yet implemented
@@ -165,7 +166,12 @@ class YrokoInstrument(Instrument):
         return 1
 
     def TCP_Exchange(self, message, wait=True):
-        """Framework for sending and recieving over TCP with acknowledgments"""
+        """Framework for sending and recieving over TCP with acknowledgments
+        
+        Args:
+            message: string to be sent to pi
+            wait: boolean for whether to wait for RAMP completition, to be safe leave as true
+        """
         #NOTE: I believe python's socket package should already be doing acknowledgments, I have added it here because sometimes the TCP's were still never going through
         #TCP is failing when Instrument gets disconnected without the raspberry pi knowing connection was broken 
         #rewriting this should make the need for this unnecessary
@@ -212,7 +218,7 @@ class YrokoInstrument(Instrument):
             # set all channels to true zero
             for channel_name, channel_ref in self.submodules.items():
                 channel_ref.set_current(channel_ref.true_zero)
-                logging.INFO(f"YROKO channel {channel_name} current: {1000*channel_ref.current()} mA")          )
+                logging.INFO(f"YROKO channel {channel_name} current: {1000*channel_ref.current()} mA")
         finally:
             self.sock.close()
             super.close()
