@@ -283,7 +283,7 @@ if __name__ == "__main__":
                 while True:
                     # read_request()
                     data = connection.recv(BUFFER_SIZE)
-                    connection.sendall("A".encode())
+                    connection.sendall(b"1")
                     # ignore empty init messages
                     if len(data) == 0:
                         continue
