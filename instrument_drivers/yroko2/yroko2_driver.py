@@ -41,10 +41,9 @@ class YrokoChannel(InstrumentChannel):
             name: The 'colloquial' name of the channel
             channel: The channel int specifir
         """
-        if channel not in [0, 1, 2, 3]:
-            raise ValueError("invalid channel")
 
         # this is an offset that was tuned to make sure that there was no jumping when you plug in the magnet.
+        # TODO: this should be a dictionary, and different channels will be different on different instruments
         true_zero_list = [-0.00106811e-3, -0.00106811e-3, 0, 0]
         self.true_zero = true_zero_list[channel]
         self.resistance = 1000
@@ -76,7 +75,7 @@ class YrokoChannel(InstrumentChannel):
 
         old_current = self.current()
         old_voltage = old_current * self.resistance
-        new_voltage = new_current * self.resistance
+        new_voltage = (new_current * self.resistance) - self.true_zero
 
         # NOTE: I believe self.vals is qcode native way for input validation but needs to be tested
         # if abs(new_voltage) > 10:
@@ -143,7 +142,8 @@ class YrokoInstrument(Instrument):
         self.IP = IP_dict[name]
 
         # Add all the channels to the instrument
-        for ch in range(4):
+        valid_channels = [0, 1]  # ,2, 3]
+        for ch in range(2):
             ch_name = f"channel_{ch}"
             channel = YrokoChannel(self, ch_name, ch)
             self.add_submodule(ch_name, channel)
@@ -160,10 +160,17 @@ class YrokoInstrument(Instrument):
 
         self.TCP_Connect()
 
-        # set all channels to true zero
-        for channel_ref in self.submodules.values():
+        # set all channels to true zero, and confirm with a GET
+        for channel_name, channel_ref in self.submodules.items():
             channel_ref.set_current(channel_ref.true_zero)
-
+            print(
+                "YROKO channel "
+                + str(channel_name)
+                + " current: "
+                + str(channel_ref.current() * 1000)
+                + "mA"
+            )
+        # print("Initialization Process Complete\n")
         self.connect_message()
 
     def TCP_Connect(self):
@@ -175,47 +182,47 @@ class YrokoInstrument(Instrument):
             self.IP,
             port,
         )
-        print(
-            sys.stderr, "Connecting to " + str(server_address[0]) + " port " + str(port)
-        )
+        print("Connecting to " + str(server_address[0]) + " port " + str(port))
 
         # 5 second timeout in case connection fails
-        # self.sock.settimeout(5)
-        # XXX: don't use, I think is causing an error when waiting for RAMP confirmation
+        self.sock.settimeout(5)
 
         try:
             self.sock.connect(server_address)
         except socket.error:
             print("Caught exception socket.error, failed to connect")
             raise Exception(
-                "TCP connect failed - check raspberry pi is running yroko_board.py"
+                "TCP connect failed. You should verify that the raspberry pi is currently running yroko_board.py"
             )
             return 0
 
         print("Connection successful")
-        # now get initial current:
-        # unknown current indicated by 'U' so if that sticks around something is *seriously* fucked up
-
-        # TODO: how does parent class iterate over its submodules instrument channels?
-        # print(
-        #     "YROKO channel "
-        #     + str(self.channel)
-        #     + " current: "
-        #     + str(self.current() * 1000)
-        #     + "mA"
-        # )
-
-        print("Initialization Process Complete\n")
         return 1
 
     def TCP_Exchange(self, message, wait=True):
         """framework for sending a message and waiting for a response"""
         # TODO: rewrite, should have a timeout?
         print("Sending: " + message)
-        self.sock.sendall(bytes(message, "utf-8"))
+        acknowledgment = False
+        attempts = 0
+        while not acknowledgment and attempts < 3:
+            try:
+                self.sock.settimeout(3)
+                self.sock.sendall(bytes(message, "utf-8"))
+                self.sock.recv(1)
+                acknowledgment = True
+            except socket.timeout:
+                attempts += 1
+                continue
+        if not acknowledgment:
+            raise Exception("TCP exchange unable to recieve acknowledgment")
         # the system will wait until it receives something. So the server must send something for the client to be able to respond
         if wait:
+            print("recieved acknolowedgment now waiting...")
+            self.sock.settimeout(None)
             feedback = self.sock.recv(64)
+            # send acknowledmgent
+            self.sock.sendall("A".encode())
         else:
             feedback = b""
         print("raw feedback from server: ", feedback)
@@ -229,9 +236,5 @@ class YrokoInstrument(Instrument):
                 channel_ref.set_current(0)
         finally:
             self.sock.close()
-            print(
-                "shutdown complete. \nUnplugging channel "
-                + str(self.channel + 1)
-                + " is safe now"
-            )
+            print("shutdown complete")
             super.close()

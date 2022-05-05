@@ -69,8 +69,8 @@ class Yroko2Board:
         # open spi on 0,0 to use SPI0 MISO/MOSI pins
         self.spi = spidev.SpiDev(0, 0)
         # 35 MHz is max per datasheet but much higher than this value seems to break
-        # self.spi.max_speed_hz = 27777777
-        self.spi.max_speed_hz = 20000
+        self.spi.max_speed_hz = 27777777
+        # self.spi.max_speed_hz = 20000
         self.spi.bits_per_word = 8
         # SPI mode 3 for clock edges configuration
         self.spi.mode = 0b11
@@ -162,7 +162,7 @@ class Yroko2Board:
 
         # log the actual voltage value put in DAC
         logging.info(
-            f"Set voltage to {self._bytesToVoltage(self._getDACValue(channel))}"
+            f"Set channel {channel} voltage to {self._bytesToVoltage(self._getDACValue(channel))}"
         )
 
     def getVoltageRange(self):
@@ -275,6 +275,7 @@ if __name__ == "__main__":
             try:
                 # wait for an incoming connection
                 logging.info("Listening...")
+                connection = None
                 connection, client_address = sock.accept()
                 logging.info(f"Connection established: {client_address}")
 
@@ -282,7 +283,7 @@ if __name__ == "__main__":
                 while True:
                     # read_request()
                     data = connection.recv(BUFFER_SIZE)
-
+                    connection.sendall("A".encode())
                     # ignore empty init messages
                     if len(data) == 0:
                         continue
@@ -309,12 +310,30 @@ if __name__ == "__main__":
                         pass
 
                     # write_response()
-                    connection.sendall(message)
+                    logging.info(f"TCP sending: {message}")
+                    acknowledgment = False
+                    attempts = 0
+                    while not acknowledgment and attempts < 3:
+                        try:
+                            sock.settimeout(3)
+                            connection.sendall(message)
+                            connection.recv(1)
+                            acknowledgment = True
+                        except socket.timeout:
+                            attempts += 1
+                            continue
+                    if not acknowledgment:
+                        raise Exception("TCP exchange unable to recieve acknowledgment")
+
+            except ConnectionResetError:
+                # driver forced closed, start listening again
+                pass
 
             finally:
                 # close_connection()
                 logging.info("Close TCP")
-                connection.close()
+                if connection is not None:
+                    connection.close()
 
     # # ramp up
     # yk.ramp(channel=1, start_voltage=-0.5, stop_voltage=0)
