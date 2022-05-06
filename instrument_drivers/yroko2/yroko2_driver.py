@@ -17,6 +17,9 @@ from qcodes import Instrument, InstrumentChannel, Parameter
 Example for reference: https://qcodes.github.io/Qcodes/examples/writing_drivers/Creating-Instrument-Drivers.html#VisaInstrument:-a-more-involved-example
 """
 
+logging.basicConfig(level=logging.INFO)
+
+
 class _YrokoChannel(InstrumentChannel):
     """
     Channel class represents each of the 4 DAC boards controlled by a raspberry pi
@@ -59,11 +62,13 @@ class _YrokoChannel(InstrumentChannel):
         data = self.parent.TCP_Exchange(f"GET_DAC, {self.channel}")
         # index data buffer by 0 since is a bytearray
         voltage = np.frombuffer(data, np.float32)[0]
-        return voltage / self.resistance
+        new_current = voltage / self.resistance
+        logging.info(f"GET channel {self.channel} current: {1000 * new_current} mA")
+        return new_current
 
     def _set_current(self, new_current, ramp_rate=None) -> float:
         """SET method for channel's current
-        
+
         Args:
             new_current: current value in mA
             ramp_rate: not yet implemented
@@ -95,14 +100,16 @@ class _YrokoChannel(InstrumentChannel):
 
         # time_estimate = time_step * num_steps
 
-        logging.INFO("Sending command and awaiting ramp completion...")
+        logging.info("Sending command and awaiting ramp completion...")
         ramp_conf = self.parent.TCP_Exchange(message)
-        if ramp_conf != "RAMP_FINISHED":
+        if ramp_conf != b"RAMP_FINISHED":
             raise Exception("RAMP FAILED")
 
         # verify using GET
-        new_current = self.get_current()
-        logging.INFO("Verified current: " + str(new_current) + "mA")
+        new_current = self.current()
+        logging.info(
+            f"Verify channel {self.channel} SET current: {1000 * new_current} mA"
+        )
         return new_current
 
 
@@ -137,9 +144,11 @@ class YrokoInstrument(Instrument):
 
         # set all channels to true zero
         for channel_name, channel_ref in self.submodules.items():
-            channel_ref.set_current(channel_ref.true_zero)
-            logging.INFO(f"YROKO channel {channel_name} current: {1000*channel_ref.current()} mA")          )
-      
+            channel_ref.current(channel_ref.true_zero)
+            logging.info(
+                f"YROKO channel {channel_name} current: {1000*channel_ref.current()} mA"
+            )
+
         self.connect_message()
 
     def TCP_Connect(self):
@@ -149,7 +158,7 @@ class YrokoInstrument(Instrument):
 
         # Connect the socket to the port where the server is listening
         server_address = (self.IP, port)
-        logging.INFO(f"Connecting to {str(server_address[0])} port {str(port)}...")
+        logging.info(f"Connecting to {str(server_address[0])} port {str(port)}...")
 
         # 5 second timeout before initial connection fails
         self.sock.settimeout(5)
@@ -160,54 +169,62 @@ class YrokoInstrument(Instrument):
             raise Exception(
                 "TCP connect failed. You should verify that the raspberry pi is currently running yroko_board.py"
             )
+            self.TCP_Disconnect()
             return 0
 
-        logging.INFO("Initial connection successful")
+        logging.info("Initial connection successful")
         return 1
+
+    def TCP_Disconnect(self):
+        self.sock.close()
 
     def TCP_Exchange(self, message, wait=True):
         """Framework for sending and recieving over TCP with acknowledgments
-        
+
         Args:
             message: string to be sent to pi
             wait: boolean for whether to wait for RAMP completition, to be safe leave as true
         """
-        #NOTE: I believe python's socket package should already be doing acknowledgments, I have added it here because sometimes the TCP's were still never going through
-        #TCP is failing when Instrument gets disconnected without the raspberry pi knowing connection was broken 
-        #rewriting this should make the need for this unnecessary
+        # NOTE: I believe python's socket package should already be doing acknowledgments, I have added it here because sometimes the TCP's were still never going through
+        # TCP is failing when Instrument gets disconnected without the raspberry pi knowing connection was broken
+        # rewriting this should make the need for this unnecessary
 
-        logging.DEBUG(f"Sending: {message}")
-    
+        logging.debug(f"Sending: {message}")
+
         acknowledgment = False
         attempts = 0
         while not acknowledgment and attempts < 1:
             try:
                 self.sock.settimeout(3)
                 self.sock.sendall(bytes(message, "utf-8"))
-                
-                #wait for ack
+
+                # wait for ack
                 self.sock.recv(1)
                 acknowledgment = True
             except socket.timeout:
                 attempts += 1
                 continue
         if not acknowledgment:
-            raise Exception("TCP exchange unable to receive acknowledgment, raspPi and Insturment got disconnected without them realizing, restart board.py and try again.")
-        
-        #recieved an ack, life is good :)
-        if wait:
-            logging.DEBUG("Initial acknowledgment recieved, waiting for data response...")
+            raise Exception(
+                "TCP exchange unable to receive acknowledgment, raspPi and Insturment got disconnected without them realizing, restart board.py and try again."
+            )
 
-            #because ack was success, can disable timeout for a long RAMP completition wait
+        # recieved an ack, life is good :)
+        if wait:
+            logging.debug(
+                "Initial acknowledgment recieved, waiting for data response..."
+            )
+
+            # because ack was success, can disable timeout for a long RAMP completition wait
             self.sock.settimeout(None)
             feedback = self.sock.recv(64)
 
             # send back an acknowledmgent
-            self.sock.sendall(b'1')
-        
+            self.sock.sendall("A".encode())
+
         else:
             feedback = b""
-        logging.DEBUG("Raw feedback from server: ", feedback)
+        logging.debug("Raw feedback from server: ", feedback)
 
         # Let caller handle formatting, return as raw bytearray
         return feedback
@@ -217,9 +234,11 @@ class YrokoInstrument(Instrument):
         try:
             # set all channels to true zero
             for channel_name, channel_ref in self.submodules.items():
-                channel_ref.set_current(channel_ref.true_zero)
-                logging.INFO(f"YROKO channel {channel_name} current: {1000*channel_ref.current()} mA")
+                channel_ref.current(channel_ref.true_zero)
+                logging.info(
+                    f"YROKO channel {channel_name} current: {1000*channel_ref.current()} mA"
+                )
         finally:
-            self.sock.close()
-            super.close()
-            logging.INFO("Shutdown complete!")
+            self.TCP_Disconnect()
+            logging.info("Shutdown complete!")
+            super().close()

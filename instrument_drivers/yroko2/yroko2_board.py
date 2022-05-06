@@ -66,10 +66,10 @@ class Yroko2Board:
         self.no_cs = True
 
         # power-on sequence
-        logging.DEBUG("Powering on...")
+        logging.debug("Powering on...")
         for channel in self.channel_dict:
             self._configure_control(channel)
-        logging.DEBUG("Ready")
+        logging.debug("Ready")
         return self
 
     def __exit__(self, exception_type, exception_value, traceback):
@@ -83,9 +83,17 @@ class Yroko2Board:
         and the output clamp is removed by clearing the OPGND bit.
         """
 
-        # logging.DEBUG(f"read channel {channel} control register before doing update")
+        # logging.debug(f"read channel {channel} control register before doing update")
         # self._read_control(channel)
 
+        # set binary encoding
+        configuration_string = [0x20, 0x00, 0x16]
+        self._write_inputShiftRegister(channel, configuration_string)
+
+        # make sure DAC starts at 0
+        self.set_voltage(channel, 0)
+
+        # remove clamp
         configuration_string = [0x20, 0x00, 0x12]
         self._write_inputShiftRegister(channel, configuration_string)
 
@@ -96,7 +104,7 @@ class Yroko2Board:
         if not channel in self.channel_dict:
             raise ValueError("Channel does not exist")
 
-        # logging.DEBUG(f"writing to SPI byte array {[bin(value)[2:].zfill(8) for value in bytearray]}")
+        # logging.debug(f"writing to SPI byte array {[bin(value)[2:].zfill(8) for value in bytearray]}")
         self.nsync[channel].off()
         self.spi.xfer2(bytearray)
         self.nsync[channel].on()
@@ -147,7 +155,7 @@ class Yroko2Board:
         configure_write_bytes = voltage_bytes
         dac_address = 0x10
         configure_write_bytes[0] += dac_address
-        logging.DEBUG(
+        logging.debug(
             f"MOSI write to channel {channel} DAC: {[hex(value) for value in configure_write_bytes]}"
         )
         self._write_inputShiftRegister(channel, configure_write_bytes)
@@ -183,8 +191,12 @@ class Yroko2Board:
 
         # keep stepping....
         # use last_value to remove need for duplicate calls to getDACValue
-        while (last_value := self._getDACValue(channel)) != stop_string:
+        # while (last_value := self._getDACValue(channel)) != stop_string:
+        # walrus operator not in python3.7 so rewrite
+        last_value = self._getDACValue(channel)
+        while last_value != stop_string:
             step(channel, last_value)
+            last_value = self._getDACValue(channel)
 
     def increment_unit(self, channel: int, last_value):
         """Increase voltage by single bit"""
@@ -220,7 +232,7 @@ class Yroko2Board:
         register_contents = self.spi.readbytes(3)
         self.nsync[channel].on()
 
-        logging.DEBUG(
+        logging.debug(
             f"MISO read from channel {channel} DAC contents: {[hex(value) for value in register_contents]}"
         )
         return register_contents
@@ -235,7 +247,7 @@ class Yroko2Board:
         self.nsync[channel].on()
 
         # logging.debug(f"MISO read channel {channel} control register contents: {[bin(value)[2:].zfill(8) for value in register_contents]}")
-        logging.DEBUG(
+        logging.debug(
             f"MISO read from channel {channel} control contents: {[hex(value) for value in register_contents]}"
         )
         return register_contents
@@ -245,7 +257,7 @@ if __name__ == "__main__":
     # TODO: refactor put some of the TCP stuff into functions
     """in main loop, recieve TCP messages from instrument driver"""
     yroko = Yroko2Board()
-    # logging.basicConfig(level=logging.DEBUG)
+    # logging.basicConfig(level=logging.debug)
     logging.basicConfig(level=logging.INFO)
 
     # #debug case
@@ -258,7 +270,8 @@ if __name__ == "__main__":
     BUFFER_SIZE = 64  # idk
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_address = ("", 8888)  # socket.gethostname()
-    # bind socket to this port
+    # bind socket to this port, allow reuse
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     sock.bind(server_address)
     # Listen for incoming connections
     sock.listen(1)
@@ -271,7 +284,7 @@ if __name__ == "__main__":
             # wrap everything in try, so can close in finally case
             try:
                 # wait for an incoming connection
-                logging.info("Listening...")
+                logging.info("Waiting for connection...")
                 connection = None
                 connection, client_address = sock.accept()
                 logging.info(f"Connection established: {client_address}")
@@ -279,8 +292,9 @@ if __name__ == "__main__":
                 # iterate over every tcp exchange
                 while True:
                     # read_request()
+                    logging.info("Listening...")
                     data = connection.recv(BUFFER_SIZE)
-                    connection.sendall(b"1")
+                    connection.sendall("A".encode())
                     # ignore empty init messages
                     if len(data) == 0:
                         continue
@@ -313,10 +327,10 @@ if __name__ == "__main__":
                     while not acknowledgment and attempts < 1:
                         try:
                             sock.settimeout(3)
-                            connection.sendall(bytes(message, "utf-8"))
+                            connection.sendall(message)
 
                             # wait for ack
-                            connection.sock.recv(1)
+                            connection.recv(1)
                             acknowledgment = True
                         except socket.timeout:
                             attempts += 1
@@ -326,8 +340,8 @@ if __name__ == "__main__":
                             "TCP exchange unable to receive acknowledgment, raspPi and Insturment got disconnected without them realizing..."
                         )
 
-            except ConnectionResetError:
-                # driver forced closed, start listening again
+            except (ConnectionResetError, BrokenPipeError) as e:
+                # driver *probably* forced closed, start listening again
                 pass
 
             finally:
@@ -335,6 +349,9 @@ if __name__ == "__main__":
                 logging.info("Close TCP")
                 if connection is not None:
                     connection.close()
+
+        # finally
+        sock.close()
 
     # # ramp up
     # yk.ramp(channel=1, start_voltage=-0.5, stop_voltage=0)
