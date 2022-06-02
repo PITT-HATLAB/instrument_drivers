@@ -54,12 +54,12 @@ class Keysight_N5183B(VisaInstrument):
                            vals = vals.Ints(0,1), 
                            get_parser = int
                            )
-        self.add_parameter('phase_adjust', 
+        self.add_parameter('phase', 
                            get_cmd = 'PHAS:ADJ?', 
                            set_cmd = 'PHAS:ADJ {}', 
                            vals = vals.Numbers(), 
                            get_parser =float, 
-                           unit = 'Hz'
+                           unit = 'rad'
                            )
         self.add_parameter('power', 
                            get_cmd = 'POW?', 

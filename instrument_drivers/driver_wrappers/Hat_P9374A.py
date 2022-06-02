@@ -35,7 +35,7 @@ class Hat_P9374A(Keysight_P9374A):
         '''
         assert number > 0
         
-        del_time = 0.05
+        del_time = 0.1
         prev_trform = self.trform()
         self.trform('POL')
         time.sleep(del_time)
@@ -43,7 +43,7 @@ class Hat_P9374A(Keysight_P9374A):
         time.sleep(del_time)
         self.trigger_source("MAN")
         time.sleep(del_time)
-        total_time = self.sweep_time()*number+0.3 
+        total_time = self.sweep_time()*number+10
         #200ms window, if you need data faster talk to YR
         time.sleep(del_time)
         self.avgnum(number)
@@ -87,6 +87,7 @@ class Hat_P9374A(Keysight_P9374A):
 
         self.trform(prev_trform)
         self.previous_save = savedir
+        self.set_to_manual()
         
         return self.filepath
     
@@ -211,3 +212,46 @@ class Hat_P9374A(Keysight_P9374A):
             ax.grid(b = 1)
         self.set_to_manual()
         return 10*np.log10(G), f/1e9, np.abs(2*bw/1e6), popt, gain_func
+    
+    def scan(self, start, stop, step, ifbw = 3000, avgnum = 1, savedir = None, name = None): 
+        
+        if savedir == None:
+            savedir = easygui.diropenbox("Choose file location: ")
+            assert savedir != None
+        if name == None: 
+            name = easygui.enterbox("Enter Trace Name: ")
+            assert name != None
+            
+        elif savedir == "previous": 
+            savedir = self.previous_save
+            assert savedir != None
+        
+        freqs_arr = []
+        mag_arr = []
+        phase_arr = []
+        center_points = np.arange(start, stop, step)
+        
+        for center in center_points: 
+            self.fcenter(center)
+            freqs = self.getSweepData()
+            mag, phase = self.average(avgnum)
+            np.append(freqs_arr, freqs)
+            np.append(mag_arr, mag)
+            np.append(phase_arr, phase)
+        
+        data = dd.DataDict(
+            frequency = dict(unit='Hz'),
+            power = dict(axes=['frequency'], unit = 'dB'), 
+            phase = dict(axes=['frequency'], unit = 'Degrees'),
+        )
+
+        with dds.DDH5Writer(savedir, data, name=name) as writer:
+            writer.add_data(
+                    frequency = freqs_arr,
+                    power = mag_arr,
+                    phase = phase_arr
+                )
+            self.filepath = writer.file_path
+        self.set_to_manual()
+        
+        return self.filepath
