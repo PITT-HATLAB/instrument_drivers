@@ -1,6 +1,10 @@
 # yroko2.0
 To ready the raspberry pi, run the `yroko2_board` python file. On success, the pi should print that it is listening on its TCP port.
-To run python file in terminal, simply open terminal, and use command `.yroko_run.sh`
+To run python file in terminal, simply open terminal, and use command 
+```
+./yroko_run.sh
+```
+
 ```
 pi@YROKO:~/Desktop/yroko2.0 $ python3 yroko2_board.py 
 INFO:root:Waiting for connection...
