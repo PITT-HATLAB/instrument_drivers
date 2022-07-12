@@ -24,36 +24,38 @@ class Hat_P9374A(Keysight_P9374A):
         self.ifbw(3000)
         self.avgnum(15)
         self.power(-43)
+
     
     def average_restart(self):
         self.write('SENS1:AVER:CLE')
         
-    def average(self, number): 
+    def average(self, number, avg_over_freq = False): 
         #setting averaging timeout, it takes 52.02s for 100 traces to average with 1601 points and 2kHz IFBW
         '''
         Sets the number of averages taken, waits until the averaging is done, then gets the trace
         '''
         assert number > 0
-        
-        del_time = 0.1
         prev_trform = self.trform()
         self.trform('POL')
-        time.sleep(del_time)
+        time.sleep(self.del_time)
         self.average_type("POIN")
-        time.sleep(del_time)
+        time.sleep(self.del_time)
         self.trigger_source("MAN")
-        time.sleep(del_time)
+        time.sleep(self.del_time)
         total_time = self.sweep_time()*number+10
         #200ms window, if you need data faster talk to YR
-        time.sleep(del_time)
+        time.sleep(self.del_time)
         self.avgnum(number)
-        time.sleep(del_time)
+        time.sleep(self.del_time)
         self.timeout(total_time)
-        time.sleep(del_time)
+        time.sleep(self.del_time)
         print(f"Waiting {np.round(total_time, 1)}s for {number} averages...")
         self.last_msmt_msg = self.ask('ABORT; INITIATE:IMMEDIATE; *OPC?')
-        time.sleep(del_time)
-        return self.gettrace()
+        time.sleep(self.del_time)
+        if not avg_over_freq: 
+            return self.gettrace()
+        else: 
+            return np.average(self.gettrace(), axis = 1).reshape((2,1))
     
     def savetrace(self, avgnum = 10, savedir = None, name = None): 
         if savedir == None:

@@ -6,6 +6,7 @@ Created on Wed Jun 24 11:05:31 2020
 """
 
 import matplotlib.pyplot as plt
+from plottr.apps.autoplot import main
 import numpy as np
 from qcodes import (Instrument, VisaInstrument,
                     ManualParameter, MultiParameter,
@@ -24,7 +25,8 @@ from instrument_drivers.base_drivers.switch_control import SWT as SWTCTRL
 from instrument_drivers.base_drivers.Keysight_MXA_N9020A import Keysight_MXA_N9020A
 # from hatdrivers.Tektronix_AWG5014C import Tektronix_AWG5014C
 from instrument_drivers import DLL
-from instrument_drivers.yroko.YROKO_Client import YROKO
+# from instrument_drivers.yroko.YROKO_Client import YROKO
+from instrument_drivers.yroko2.yroko2_driver import YrokoInstrument 
 from qcodes.instrument_drivers.tektronix.AWG5014 import Tektronix_AWG5014
 
 #customized drivers
@@ -47,7 +49,7 @@ CXA = Hat_MXA_N9020A("CXA", address = 'TCPIP0::169.254.110.116::INSTR')
 # VNA = Agilent_ENA_5071C("VNA", address = "TCPIP0::169.254.169.64::inst0::INSTR", timeout = 30)
 pVNA = Hat_P9374A("pVNA", address = "TCPIP0::Hatlab_3-PC::hislip0,4880::INSTR", timeout = 3)
 # pVNA = Hat_P9374A("pVNA", address = "TCPIP0::DESKTOP-8EN5L8U::hislip0,4880::INSTR", timeout = 3)
-# pVNA = Hat_P9374A("pVNA", address = "TCPIP0::Hatlab_3-PC::hislip2,4880::INSTR", timeout = 3)
+# pVNA = Hat_P9374A("pVNA", address = x"TCPIP0::Hatlab_3-PC::hislip2,4880::INSTR", timeout = 3)
 #for little VNA: TCPIP0::Hatlab_3-PC::hislip0,4880::INSTR\
 #For big VNA: (RIP): TCPIP0::169.254.152.68::inst0::INSTR
 #For big VNA2: TCPIP0::169.254.169.64::inst0::INSTR
@@ -60,7 +62,12 @@ yoko2 = YOKO('yoko2',address = "TCPIP::169.254.34.35::INSTR")
 # except:           
 #     print("YOKO not connected")
 # yoko1 = YOKO('yoko1', address = 'TCPIP::169.254.239.5::INSTR')
-# YROKO1 = YROKO('YROKO1')
+#%%
+from qcodes.instrument import find_or_create_instrument
+yroko = find_or_create_instrument(YrokoInstrument, "yroko_0", recreate=True)
+
+#%%
+yoko3 = YOKO('yoko3',address = "TCPIP::169.254.35.39::INSTR")
 #%%
 # # Switches need to be initialized externally, then fed into the switch_control file explicitly
 SWT1 = MiniCircuits_Switch('SWT1',address = 'http://169.254.47.255')

@@ -39,7 +39,7 @@ class Keysight_P9374A(VisaInstrument):
         logging.info(__name__ + ' : Initializing instrument Keysight PNA')
         
         super().__init__(name, address, terminator = '\n', **kwargs)
-
+        self.del_time = 0.1
         # Add in parameters
         self.add_parameter('fstart', 
                           get_cmd = ':SENS1:FREQ:STAR?', 
@@ -184,7 +184,8 @@ class Keysight_P9374A(VisaInstrument):
                            get_cmd = ':SENS1:SWE:TIME?', 
                            set_cmd = None, #generally just adjust ifbw and number of pts to change it,
                            get_parser = float,
-                           unit = 's'
+                           unit = 's', 
+                           offset = -6*self.del_time
                            )
         self.write('CALC1:PAR:MNUM 1') #sets the active msmt to the first channel/trace
         self.connect_message()

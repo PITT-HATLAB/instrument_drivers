@@ -15,3 +15,5 @@ instrument_drivers/alazar_utilities/__pycache__/__init__.cpython-37.pyc
 instrument_drivers/driver_wrappers/__pycache__/Hat_AWG5014C.cpython-37.pyc
 LOCAL_INIT.py
 *.pyc
+LOCAL_INIT.py
+LOCAL_INIT.py
