@@ -63,7 +63,7 @@ class Yroko2Board:
         # SPI mode 3 for clock edges configuration
         self.spi.mode = 0b11
         # using our own GPIO pins for sync
-        self.no_cs = True
+        self.spi.no_cs = True
 
         # power-on sequence
         logging.debug("Powering on...")
