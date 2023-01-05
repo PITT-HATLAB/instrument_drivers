@@ -99,4 +99,4 @@ Status: Get and Set yroko_0 on channels 0 and 1 are operational. Some minor TODO
 In this mode, LDAC is held low while data is being clocked into the input shift register. The DAC output is updated on the rising edge of SYNC
 - SDI, Data is clocked into the register on the falling edge of the serial clock input.
 - CLK, Data can be transferred at rates of up to 35 MHz.
-![YROKO](https://user-images.githubusercontent.com/47376937/210861940-469f5966-1da0-4996-be4b-ce76008250a1.png)
+![yroko](https://user-images.githubusercontent.com/47376937/210862592-1afbe5d8-fbe1-4baf-a6c2-5f9c17a0de47.png)
