@@ -73,7 +73,7 @@ Status: Get and Set yroko_0 on channels 0 and 1 are operational. Some minor TODO
 ### Setup
 ![image](https://user-images.githubusercontent.com/47376937/210861028-2fa0e0fd-e9b7-4eba-9c59-a9b2903891a5.png)
 
-'''python
+```python
  def _configure_control(self, channel: int):
         # TODO: we want the DAC to boot to 0V instead of -10V
         """The DAC is removed from tristate by clearing the DACTRI bit,
@@ -94,7 +94,7 @@ Status: Get and Set yroko_0 on channels 0 and 1 are operational. Some minor TODO
         # remove clamp
         configuration_string = [0x20, 0x00, 0x12]
         self._write_inputShiftRegister(channel, configuration_string)
-'''
+```
 
 ### Synchronous DAC Update
 In this mode, LDAC is held low while data is being clocked into the input shift register. The DAC output is updated on the rising edge of SYNC
