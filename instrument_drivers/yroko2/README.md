@@ -75,7 +75,6 @@ Status: Get and Set yroko_0 on channels 0 and 1 are operational. Some minor TODO
 
 ```python
  def _configure_control(self, channel: int):
-        # TODO: we want the DAC to boot to 0V instead of -10V
         """The DAC is removed from tristate by clearing the DACTRI bit,
         set BIN/2sC to 1 to treat D as nonsigned binary number (default is 2s complement),
         and the output clamp is removed by clearing the OPGND bit.
