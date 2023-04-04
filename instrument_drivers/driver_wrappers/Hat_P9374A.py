@@ -8,7 +8,6 @@ purpose: add additional functionality to PNA driver without adding bulk to base 
 """
 from instrument_drivers.base_drivers.Keysight_P9374A import Keysight_P9374A
 import numpy as np
-import easygui
 import time
 from plottr.data import datadict_storage as dds, datadict as dd
 from data_processing.fitting.QFit import fit, plotRes, getData_from_datadict, reflectionFunc, rounder
@@ -57,15 +56,15 @@ class Hat_P9374A(Keysight_P9374A):
         else: 
             return np.average(self.gettrace(), axis = 1).reshape((2,1))
     
-    def savetrace(self, avgnum = 10, savedir = None, name = None): 
-        if savedir == None:
-            savedir = easygui.diropenbox("Choose file location: ")
-            assert savedir != None
-        if name == None: 
-            name = easygui.enterbox("Enter Trace Name: ")
-            assert name != None
+    def savetrace(self, avgnum = 10, savedir, name): 
+        # if savedir == None:
+        #     savedir = easygui.diropenbox("Choose file location: ")
+        #     assert savedir != None
+        # if name == None: 
+        #     name = easygui.enterbox("Enter Trace Name: ")
+        #     assert name != None
             
-        elif savedir == "previous": 
+        if savedir == "previous": 
             savedir = self.previous_save
             assert savedir != None
             
