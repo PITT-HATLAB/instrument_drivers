@@ -124,7 +124,7 @@ class YrokoInstrument(Instrument):
         Args:
             name: name acts as a reference for IP address, e.g. yroko_0, yroko_1, ...
         """
-        super().__init__(name)
+        super().__init__(name, timeout = 30)
 
         # match given name to IP lookup table
         IP_dict = {"yroko_0": "192.168.6.94"}

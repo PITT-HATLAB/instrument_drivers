@@ -176,6 +176,7 @@ class Yroko2Board:
         start_voltage: float,
         stop_voltage: float,
         time_step: int = None,
+        debug_msg = False
     ):
         self.set_voltage(channel, start_voltage)
         # decide if we are going up or down
@@ -197,6 +198,8 @@ class Yroko2Board:
         while last_value != stop_string:
             step(channel, last_value)
             last_value = self._getDACValue(channel)
+            if debug_msg:
+                print(f"Channel {channel} ramping down.. {self._bytesToVoltage(last_value)} V")
 
     def increment_unit(self, channel: int, last_value):
         """Increase voltage by single bit"""
@@ -292,7 +295,7 @@ if __name__ == "__main__":
                 # iterate over every tcp exchange
                 while True:
                     # read_request()
-                    logging.info("Listening...")
+                    logging.info(f"Listening...")
                     data = connection.recv(BUFFER_SIZE)
                     connection.sendall("A".encode())
                     # ignore empty init messages
@@ -343,12 +346,23 @@ if __name__ == "__main__":
             except (ConnectionResetError, BrokenPipeError) as e:
                 # driver *probably* forced closed, start listening again
                 pass
-
+            except socket.timeout as t:
+                #ramp down both channels to make it safe to reconnect
+                print("Detected that remote has closed unexpectedly. Ramping down to prepare for reconnection or reboot...")
+                for channel in yroko.channel_dict.keys():
+                    stop = 0
+                    startDAC = yroko._getDACValue(channel)
+                    print("DEBUG: ch{channel} startDAC: ", startDAC)
+                    print("to Voltages:", )
+                    start = yroko._bytesToVoltage(startDAC)
+                    yroko.ramp(channel , start, stop, debug_msg = True)
+                    print("Finished ramping everything down for safety. Listening again...")
             finally:
                 # close_connection()
                 logging.info("Close TCP")
                 if connection is not None:
                     connection.close()
+
 
         # finally
         sock.close()
