@@ -127,7 +127,7 @@ class YrokoInstrument(Instrument):
         super().__init__(name)
 
         # match given name to IP lookup table
-        IP_dict = {"yroko_0": "169.254.6.22"}
+        IP_dict = {"yroko_0": "192.168.6.94"}
         if name not in IP_dict.keys():
             raise Exception("Instrument name not given IP address")
         self.IP = IP_dict[name]
