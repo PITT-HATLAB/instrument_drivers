@@ -114,12 +114,12 @@ class Keysight_P9374A(VisaInstrument):
                            get_parser = int, 
                            vals = vals.Ints(0,1)
                            )
-        self.add_parameter('average_trigger', 
-                           get_cmd = ':TRIG:AVER?',
-                           set_cmd = ':TRIG:AVER {}', 
-                           get_parser = int, 
-                           vals = vals.Ints(0,1)
-                           )
+        # self.add_parameter('average_trigger',
+        #                    get_cmd = ':TRIG:AVER?',
+        #                    set_cmd = ':TRIG:AVER {}',
+        #                    get_parser = int,
+        #                    vals = vals.Ints(0,1)
+        #                    )
         self.add_parameter('avgnum', 
                            get_cmd = ':SENS1:AVER:COUN?', 
                            set_cmd = ':SENS1:AVER:COUN {}', 
