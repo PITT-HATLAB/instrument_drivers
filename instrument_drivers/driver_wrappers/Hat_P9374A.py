@@ -12,6 +12,7 @@ import time
 from plottr.data import datadict_storage as dds, datadict as dd
 from data_processing.fitting.QFit import fit, plotRes, getData_from_datadict, reflectionFunc, rounder
 import inspect
+from instrument_drivers.helpers.fileSavingDialog import fileNamefromMenu
 
 class Hat_P9374A(Keysight_P9374A): 
     
@@ -56,16 +57,9 @@ class Hat_P9374A(Keysight_P9374A):
         else: 
             return np.average(self.gettrace(), axis = 1).reshape((2,1))
     
-    def savetrace(self, savedir, name, avgnum = 10,):
-        # if savedir == None:
-        #     savedir = easygui.diropenbox("Choose file location: ")
-        #     assert savedir != None
-        # if name == None: 
-        #     name = easygui.enterbox("Enter Trace Name: ")
-        #     assert name != None
-            
-        if savedir == "previous": 
-            savedir = self.previous_save
+    def savetrace(self, savedir, avgnum = 10,):
+        if savedir == None:
+            savedir = fileNamefromMenu()
             assert savedir != None
             
         data = dd.DataDict(
@@ -76,7 +70,7 @@ class Hat_P9374A(Keysight_P9374A):
 
         prev_trform = self.trform()
 
-        with dds.DDH5Writer(savedir, data, name=name) as writer:
+        with dds.DDH5Writer(savedir, data) as writer:
             freqs = self.getSweepData() #1XN array, N in [1601,1000]
             vnadata = np.array(self.average(avgnum)) #2xN array, N in [1601, 1000]
             writer.add_data(
