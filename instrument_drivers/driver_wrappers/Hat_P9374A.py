@@ -56,7 +56,7 @@ class Hat_P9374A(Keysight_P9374A):
         else: 
             return np.average(self.gettrace(), axis = 1).reshape((2,1))
     
-    def savetrace(self, avgnum = 10, savedir, name): 
+    def savetrace(self, savedir, name, avgnum = 10,):
         # if savedir == None:
         #     savedir = easygui.diropenbox("Choose file location: ")
         #     assert savedir != None
