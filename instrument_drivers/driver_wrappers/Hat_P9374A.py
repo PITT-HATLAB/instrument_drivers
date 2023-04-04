@@ -57,11 +57,8 @@ class Hat_P9374A(Keysight_P9374A):
         else: 
             return np.average(self.gettrace(), axis = 1).reshape((2,1))
     
-    def savetrace(self, savedir, avgnum = 10,):
-        if savedir == None:
-            savedir = fileNamefromMenu()
-            assert savedir != None
-            
+    def savetrace(self, filepath, avgnum = 10,):
+
         data = dd.DataDict(
             frequency = dict(unit='Hz'),
             power = dict(axes=['frequency'], unit = 'dB'), 
