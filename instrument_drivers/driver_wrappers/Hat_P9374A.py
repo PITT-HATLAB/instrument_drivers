@@ -57,7 +57,7 @@ class Hat_P9374A(Keysight_P9374A):
         else: 
             return np.average(self.gettrace(), axis = 1).reshape((2,1))
     
-    def savetrace(self, filepath, avgnum = 10,):
+    def savetrace(self, directory, name, avgnum = 10):
 
         data = dd.DataDict(
             frequency = dict(unit='Hz'),
@@ -67,7 +67,7 @@ class Hat_P9374A(Keysight_P9374A):
 
         prev_trform = self.trform()
 
-        with dds.DDH5Writer(savedir, data) as writer:
+        with dds.DDH5Writer(data, basedir = directory, name = name) as writer:
             freqs = self.getSweepData() #1XN array, N in [1601,1000]
             vnadata = np.array(self.average(avgnum)) #2xN array, N in [1601, 1000]
             writer.add_data(
@@ -75,10 +75,9 @@ class Hat_P9374A(Keysight_P9374A):
                     power = vnadata[0],
                     phase = vnadata[1]
                 )
-            self.filepath = writer.file_path
+            self.filepath = writer.filepath
 
         self.trform(prev_trform)
-        self.previous_save = savedir
         self.set_to_manual()
         
         return self.filepath
