@@ -24,7 +24,7 @@ class YOKO(GS200):
         #the driver assumes you just turned on the YOKO, and it's in voltage mode. This is almost never the case
         #for us so this sequence changes that assumption to currents instead of voltages
         self._cached_mode = "CURR"
-        self.output_level = self.current # the whole parameter, not just one value
+        self.output_level.source = self.current # the whole parameter, not just one value
         
         self._cached_range_value = self.current_range()
         

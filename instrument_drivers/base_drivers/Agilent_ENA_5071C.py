@@ -223,4 +223,3 @@ class Agilent_ENA_5071C(VisaInstrument):
         return np.array(list(map(float,strdata.split(','))))
 
             
-        

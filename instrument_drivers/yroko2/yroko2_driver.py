@@ -49,11 +49,12 @@ class _YrokoChannel(InstrumentChannel):
             get_cmd=self._get_current,
             get_parser=float,
             set_cmd=self._set_current,
-            label="Current",
+            label="current",
             unit="A",
             instrument=self,
             vals=vals.Numbers(-10 / self.resistance, 10 / self.resistance),
         )
+        self.parameters['current'] = self.current #need this for the instrumentserver to pick it up properly
 
         self.channel = channel
 
