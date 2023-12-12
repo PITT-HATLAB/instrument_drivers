@@ -273,6 +273,7 @@ class Yroko2Board:
         """
         Updates LCD once connection is established.
         """
+        # cursor positions have to be hardcoded to imporve update times.
         if channel_being_ramped == 0:
             self.lcd.cursor_pos = (0,5)
             self.lcd.write_string(f"{yk._bytesToVoltage(yk._getDACValue(0)):13.5f}")
@@ -285,10 +286,6 @@ class Yroko2Board:
             self.lcd.cursor_pos = (3,0)
             ch1_status = (f"RAMPING {up_down}" + next(self.lcd_spinner)) if channel_being_ramped == 1 else "IDLE"
             self.lcd.write_string(f"{ch1_status}\n\r")
-        #self.lcd.write_string(f"CH0: {yk._bytesToVoltage(yk._getDACValue(0)):13.5f}V\n\r")
-        #self.lcd.write_string(f"CH1: {yk._bytesToVoltage(yk._getDACValue(1)):13.5f}V\n\r")
-        #ch2_status = (f"RAMPING {up_down}" + next(self.lcd_spinner)) if channel_being_ramped == 1 else "IDLE"
-        #self.lcd.write_string(f"{ch2_status}\n\r")
         return
     def write_info_lcd(self,msg : str):
         self.lcd.clear()
@@ -337,7 +334,7 @@ if __name__ == "__main__":
                 connection, client_address = sock.accept()
                 logging.info(f"Connection established: {client_address}")
                 yroko.lcd.write_string(f"Connection established: {client_address}\n\r")
-                time.sleep(5)
+                time.sleep(0.3)             # increasing this time leads to qcodes thinking yroko isn't responding. fix timeout issues.
                 yroko.setup_lcd()
                 # iterate over every tcp exchange
                 while True:

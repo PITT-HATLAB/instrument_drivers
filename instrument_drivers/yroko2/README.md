@@ -101,3 +101,14 @@ In this mode, LDAC is held low while data is being clocked into the input shift 
 - CLK, Data can be transferred at rates of up to 35 MHz.
 ![yroko](https://github.com/PITT-HATLAB/instrument_drivers/assets/59108967/30a7d286-47e6-4313-bd1b-e9faa3dfc146)
 
+
+### LCD Support
+`yroko2_board_withlcd.py` now supports an LCD J204 display depicting the current output status of 
+the yroko.
+
+The PI must have the [RPLCD](https://rplcd.readthedocs.io/en/stable/) library and the i2c bus 
+enabled. The `__init__`method initialises the LCD, where configuration of the address and the 
+i2c_expander is required. the address can be found using `sudo i2cdetect -y 1` from the package 
+`i2c-tools`.
+
+![img_1.png](img_1.png)
