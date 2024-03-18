@@ -11,7 +11,7 @@ Sensor  --0-5V-->  ADS115  ---I2C-->  ESP32  --Wi-Fi-->  Raspberry Pi  --log--> 
 4. Finally, a dashboard (Grafana) implements all data queries, plotting, and alerting if anything goes wrong.
 
 
-To set up the Sauron follow the guide starting from [[#Steps to follow - Rpi]].
+To set up the Sauron follow the guide starting from [Steps to follow - Rpi](#Steps-to-follow---Rpi).
 
 ---
 
@@ -32,11 +32,11 @@ There are multiple guides other than this on Rpi's capabilities and usage. We on
 4. Enable I2C : Issue `sudo raspi-config` and navigate to 'Interface Options' → I2C → enable.
 5. Install Pip : Issue command ```sudo apt install python3-pip```
 6. Install [RShell](https://github.com/dhylands/rshell) : Issue `pip install --break-system-packages rshell`
-7. Install Chrony : Check out [[#Setting up NTP server]]
-8. Setup Wi-Fi AP for ESP32 to connect : Check [[#Setting up Wi-Fi Hotspot]]
-9. Setup InfluxDB : [[#Setting up InfluxDB]]
-10. Setup ESP32 :  Follow [[#ESP32]]
-11. Setup Grafana: [[#Setting up Grafana]]
+7. Install Chrony : Check out [Setting up NTP server](#Setting-up-NTP-server)
+8. Setup Wi-Fi AP for ESP32 to connect : Check [Setting-up-Wi-Fi-Hotspot](#Setting-up-Wi-Fi-Hotspot)
+9. Setup InfluxDB : [Setting up InfluxDB](#Setting-up-InfluxDB)
+10. Setup ESP32 :  Follow [ESP32](#ESP32)
+11. Setup Grafana: [Setting up Grafana](#Setting-up-Grafana)
 
 Finally, run the ESP32 and run the python server script and watch grafana being updated with relevant data.
 ```
@@ -251,7 +251,7 @@ esptool.py --chip esp32 --port /dev/ttyUSB0 --baud 460800 write_flash -z 0x1000 
 ```
 
 
-At this point, assuming nothing resulted in a failure, and the correct firmware was burned, the ESP32 should be running Micro python.  Before going into the ESP32's terminal,, we  place the files required on the ESP32 in our Raspberry Pi future use. These are the 'ESP32_client_files' in github/project folder. Make relevant changes in these files by following [[#Modifying the ESP32 files]]  and come back here.
+At this point, assuming nothing resulted in a failure, and the correct firmware was burned, the ESP32 should be running Micro python.  Before going into the ESP32's terminal,, we  place the files required on the ESP32 in our Raspberry Pi future use. These are the 'ESP32_client_files' in github/project folder. Make relevant changes in these files by following [Modifying the ESP32 files](#Modifying-the-ESP32-files)  and come back here.
 
 ```
 mkdir ./esp32clientfiles && cd esp32clientfiles
@@ -275,7 +275,7 @@ We now place the files required on the ESP32:
 cp ./esp32clientfiles/*.py /pyboard/
 ```
 
-To ensure that everything is in working order, go to the REPL, and restart the ESP32 by pressing the physical boot button on the ESP32. You should see that the wifi connects. At this point, the ESP would throw an error as it cannot find the ADC as it hasn't been connected. Follow the pinout diagram given below and connect the ADS1115 [[#ADS1115]].
+To ensure that everything is in working order, go to the REPL, and restart the ESP32 by pressing the physical boot button on the ESP32. You should see that the wifi connects. At this point, the ESP would throw an error as it cannot find the ADC as it hasn't been connected. Follow the pinout diagram given below and connect the ADS1115 [ADS1115](#ADS1115).
 
 Run the script again and make sure everything runs smoothly, and now the failure point is 'retrying socket connection'.
 ##### Pinout:
@@ -310,11 +310,11 @@ ADS1115.py    # driver for external 12bit ADC
 ADS_singleshot_singlepub_timestamped.py  # script that runs the clinet and publishes data to RPi
 ```
 Only two files need to be modified according to need:
-1. `main.py` : Modify line 10 to add the name and pass of raspberry Pi AP/hotspot while following [[#Setting up Wi-Fi Hotspot]] .
+1. `main.py` : Modify line 10 to add the name and pass of raspberry Pi AP/hotspot while following [Setting up Wi-Fi Hotspot](#Setting-up-Wi-Fi-Hotspot) .
 2. `ADS_singleshot_singlepub_timestamped.py` :
-	1. Modify line 13 to the IP of the raspberry pi wifi adaptor. If the guide [[#Setting up Wi-Fi Hotspot]] was followed without any changes, this step can be skipped.
+	1. Modify line 13 to the IP of the raspberry pi wifi adaptor. If the guide [Setting up Wi-Fi Hotspot](#Setting-up-Wi-Fi-Hotspot) was followed without any changes, this step can be skipped.
 	2. Modify line 16 to the address of the external ADC.
-	3. Modiy line 42 to the address, port, wifi_name and wifi_pwd set while follwoing [[#Setting up Wi-Fi Hotspot]] . The port can be anything greater than 1023 can be chosen. Remember the chosen port. THIS NEEDS TO BE DIFFERENT FOR EACH ESP32 CONNECTING TO THE RPI.
+	3. Modiy line 42 to the address, port, wifi_name and wifi_pwd set while follwoing [Setting up Wi-Fi Hotspot](#Setting-up-Wi-Fi-Hotspot) . The port can be anything greater than 1023 can be chosen. Remember the chosen port. THIS NEEDS TO BE DIFFERENT FOR EACH ESP32 CONNECTING TO THE RPI.
 	4. Modify line 63 to the measurement frequency desired. This code was tested for 100ms frequency and works fine. However, in this case, modify the code to append to buffer strings and send multiple data points together as it prevents network congestion.
 
 #### Modifying the RPi server files:
@@ -333,8 +333,8 @@ INFLUX_ORG_NAME = 'hatlab',
 INFLUX_TOKEN = 'dfghjdfghfg563473456fseg3456y6'
 ```
 
-Change the port number to whatever was selected as the port while following [[#Modifying the ESP32 files]]
+Change the port number to whatever was selected as the port while following [Modifying the ESP32 files](#Modifying-the-ESP32-files)
 The sensor name should change to whatever you want to name the sensor, say, 'watertemp-waterpres-airtemp-airpress'.
 `DATA_WRITE` controls the writing of text files locally for a longer remote storage if needed. Data path can be changed in line 35. If you'd like for InfluxDB to keep all data forever, modify the retention rules in line 55.
 
-`INFLUX_ORG_NAME` & `INFLUX_TOKEN` should be modified to the organisation name set and token obtained while following [[#Setting up InfluxDB]].
+`INFLUX_ORG_NAME` & `INFLUX_TOKEN` should be modified to the organisation name set and token obtained while following [Setting up InfluxDB](#Setting-up-InfluxDB).
