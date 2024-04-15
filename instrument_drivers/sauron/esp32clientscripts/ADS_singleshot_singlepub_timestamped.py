@@ -53,7 +53,7 @@ def soc_con(addr="192.168.4.1", port=65433, wifi_user = 'rpi_hatlab', wifi_pwd =
         sleep_ms(1000)
         print("Retrying socket connection")
     else:
-      wlan.connect(wifi_user,wifi_pwd)
+      wlan_connect(wifi_user,wifi_pwd)
       print("WiFi disconnected. Trying to get back on WiFi")
       time.sleep(5)
   return s

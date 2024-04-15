@@ -7,14 +7,20 @@ wlan.active(True)
 wlan.config(pm=wlan.PM_NONE)
 time.sleep(3)
 
-def wlan_connect(user='rpi_hatlab',pwd='rpi_hatlab'):
-        if wlan.isconnected():
-                print("connected to rasp pi")
-        else:
-                print("trying to connect to pi")
-                wlan.connect(user,pwd)
-                time.sleep(5)
-                wlan_connect()
+def wlan_connect(user='gaurav_op11',pwd='qwerty22'):
+        while True:
+                if wlan.isconnected():
+                        print("connected to rasp pi")
+                        return
+                else:
+                        try:
+                                print("trying to connect to pi")
+                                wlan.connect(user,pwd)
+                                time.sleep(10)
+                        except OSError:
+                                wlan.disconnect()
+                                time.sleep(5)
+
 
 #connect to wifi
 wlan_connect()

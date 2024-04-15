@@ -37,6 +37,7 @@ There are multiple guides other than this on Rpi's capabilities and usage. We on
 9. Setup InfluxDB : [Setting up InfluxDB](#Setting-up-InfluxDB)
 10. Setup ESP32 :  Follow [ESP32](#ESP32)
 11. Setup Grafana: [Setting up Grafana](#Setting-up-Grafana)
+12. [Final steps for seamlessness](#Final-Steps-for-seamlessness)
 
 Finally, run the ESP32 and run the python server script and watch grafana being updated with relevant data.
 ```
@@ -162,7 +163,7 @@ Relevant Links :
 [Docs](https://docs.influxdata.com/influxdb/v2/install/)
 [Python library](https://influxdb-client.readthedocs.io/en/latest/)
 
-
+Note : For the Hatlab, InfluxDB lives on the NAS. For steps relevant to the hatlab, follow [this instead](#Setting-up-InfluxDB-on-NAS).
 This guide is about influxDB v2. V3 is about to come out and may change some things. Follow carefully.
 
 Install InfluxDBv2:
@@ -196,7 +197,26 @@ Finally, install the python library :
 ```
 pip install --break-system-packages influxdb-client
 ```
+#### Setting up InfluxDB on NAS
 
+The synology NAS004 already has an influxdb database on the main drive.
+
+If in case it needs to be reinstalled, use docker(or container manager on synology apps) to install influxdb with the following options:
+![alt text](image.png)
+![alt text](image-1.png)
+![alt text](image-2.png)
+
+The access tokens for the databse are:
+
+admin token:
+
+"LctRigxR5euXGvWcT87H7DRCufnrFzARc7XVY2-f7CtKbuYkTTh9RqzZ8u52N-W2zbJ2LQqAEa_l3LdHoJOYhA=="
+
+
+all access python token:
+"WtGwDdgSYadjOPGtqdqJFZiy64tPpAZITWIGRpRIZzcbHvG2p_Bp5PKT-zL3bzaN_8u6TmTnkNm8RguN1OgrKA=="
+
+User and pass for logging into the influxdb : hatlab, hatlab43va
 
 #### Setting up NTP server
 It is important that all components that measure real time data keep accurate time. Since the clocks on board are only about 50ppm accurate, we expect the time to go off by a minute every month. This is true for both the Pi and the ESP32 MCUs. We use [Chrony](https://chrony-project.org/index.html) which is a NTP server and a client i.e. serves time to ESP32 and gets its own time from atomic clocks on the internet.
@@ -220,6 +240,8 @@ timedatectl set-timezone "America/New_York"
 timedatectl
 ```
 Should show 'System clock synchronized: yes'.
+
+
 
 ## ESP32
 
@@ -338,3 +360,30 @@ The sensor name should change to whatever you want to name the sensor, say, 'wat
 `DATA_WRITE` controls the writing of text files locally for a longer remote storage if needed. Data path can be changed in line 35. If you'd like for InfluxDB to keep all data forever, modify the retention rules in line 55.
 
 `INFLUX_ORG_NAME` & `INFLUX_TOKEN` should be modified to the organisation name set and token obtained while following [Setting up InfluxDB](#Setting-up-InfluxDB).
+
+
+#### Final Steps for seamlessness
+
+After adding datasources and setting up dasboards as necessary, it is advisable to add grafana alerting to the system.
+
+Other than alerting, it is important that the sauron system restarts itself in the event of a restart/powerloss automatically. For that we can use systemd:
+
+Make a file with `sudo nano /etc/systemd/system/run_sauron.service`
+and add the following content to it (making relevant changes as necessary ofcourse):
+
+```
+[Unit]
+
+Description=Runs Sauron
+[Service]
+User=hatlab
+Type=simple
+Restart=on-failure
+ExecStartPre=/bin/sleep 30
+ExecStart=/usr/bin/python /home/hatlab/Sauron_TCP_server_files/server_voltage_pressure_aja.py
+
+
+[Install]
+WantedBy=multi-user.target
+```
+and issue `sudo systemctl enable run_sauron.service`. This will ensure that the python server restarts everytime it fails and on reboot.

@@ -45,7 +45,7 @@ class sauron_server:
 
         # Data write parameters setup
         self.DATA_WRITE = DATA_WRITE
-        self.DATA_DESTINATION_FOLDER = f"./{self.SENSOR_NAME}/"
+        self.DATA_DESTINATION_FOLDER = f"/home/hatlab/{self.SENSOR_NAME}/"
         if DATA_WRITE : os.makedirs(self.DATA_DESTINATION_FOLDER, exist_ok=True)
         if INFLUX_WRITE :
             self.INFLUX = True
@@ -67,7 +67,7 @@ class sauron_server:
         self.first = True
 
         # Initiate connection
-        self.s = None
+        # self.s = None
         self.con, self.addr = self.initiate_connection()
 
         self.iter = 0
